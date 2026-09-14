@@ -3,7 +3,7 @@
 // backend seguro, mova-o para /api/register.js ou configure um framework/route.
 //
 // A chave privada deve ficar em Environment Variables:
-// DATABASE_API_KEY
+// DATABASE_API_KEY=sk_live_08c6f33af7c50e3bb015d9cdf9424fdbe90aa87fa021fce7
 // DATABASE_API_URL=https://databasen3t.lovable.app
 
 export default async function handler(req,res){
