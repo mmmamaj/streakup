@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Resultado - StreakUp</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ titulo }} — StreakUp</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<main class="app">
-<div class="resultado">
-<div style="font-size:45px;margin-bottom:12px">🔥</div>
-<h1>{{ titulo }}</h1>
-<p>{{ mensagem }}</p>
-{% if explicacao %}<div class="explicacao">{{ explicacao }}</div>{% endif %}
-<a href="/" class="botao">← Voltar para o StreakUp</a>
-</div>
-<nav class="nav">
-<a class="active" href="/">🏠<br>Início</a><a href="/pesquisar">🔎<br>Pesquisar</a><a href="/ranking">🏆<br>Ranking</a><a href="/">👤<br>Perfil</a>
-</nav>
-</main>
+  <main class="app">
+    <section class="resultado" aria-labelledby="result-title">
+      <div class="result-icon" aria-hidden="true">🔥</div>
+      <h1 id="result-title">{{ titulo }}</h1>
+      <p>{{ mensagem }}</p>
+      {% if explicacao %}<div class="explicacao">{{ explicacao }}</div>{% endif %}
+      <a href="/" class="botao">← Voltar para o StreakUp</a>
+    </section>
+    <nav class="nav" aria-label="Navegação principal"><a class="active" href="/">🏠<br>Início</a><a href="/pesquisar">🔎<br>Pesquisar</a><a href="/ranking">🏆<br>Ranking</a><a href="/perfil">👤<br>Perfil</a></nav>
+  </main>
 </body>
 </html>
