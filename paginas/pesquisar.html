@@ -1,43 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Pesquisar - StreakUp</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pesquisar — StreakUp</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<main class="app">
-<header><div><div class="brand">🔥 StreakUp</div><div class="handle">Encontre seus amigos</div></div></header>
-<section class="form-card" style="padding:20px;margin-top:22px">
-<h1 style="font-size:24px">🔎 Pesquisar perfil</h1>
-<form method="GET" action="/pesquisar">
-<input type="text" name="username" placeholder="@usuario" value="{{ pesquisado }}">
-<button class="botao" type="submit">🔎 Pesquisar</button>
-</form>
-</section>
-
-{% if pesquisado %}
-{% if usuario_encontrado %}
-<div class="search-result">
-<div class="profile-head">
-<div class="avatar">{{ usuario_encontrado.nome[0]|upper }}</div>
-<div><h2 class="profile-name">{{ usuario_encontrado.nome }}</h2><div class="muted">@{{ usuario_encontrado.username }}</div></div>
-</div>
-<div class="stats">
-<div class="stat"><strong>⭐ {{ usuario_encontrado.xp }}</strong><span>XP</span></div>
-<div class="stat"><strong>🔥 {{ usuario_encontrado.ofensiva }}</strong><span>ofensiva</span></div>
-<div class="stat"><strong>🎯 {{ usuario_encontrado.desafios }}</strong><span>desafios</span></div>
-</div>
-<a class="botao" href="/perfil/{{ usuario_encontrado.username }}">👤 Ver perfil</a>
-</div>
-{% else %}
-<div class="empty" style="margin-top:14px">❌ Usuário @{{ pesquisado }} não encontrado.</div>
-{% endif %}
-{% endif %}
-
-<nav class="nav">
-<a href="/">🏠<br>Início</a><a class="active" href="/pesquisar">🔎<br>Pesquisar</a><a href="/ranking">🏆<br>Ranking</a><a href="/">👤<br>Perfil</a>
-</nav>
-</main>
+  <main class="app">
+    <header><div><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><div class="handle">Encontre seus amigos</div></div></header>
+    <section class="form-card" aria-labelledby="page-title">
+      <div class="eyebrow">Comunidade</div><h1 id="page-title" style="margin: 6px 0 20px">Pesquisar perfil</h1>
+      <form method="GET" action="/pesquisar"><div class="field"><label for="username">Nome de usuário</label><input id="username" type="text" name="username" placeholder="@usuario" value="{{ pesquisado }}"></div><button class="botao" type="submit">🔎 Pesquisar</button></form>
+    </section>
+    {% if pesquisado %}{% if usuario_encontrado %}
+    <section class="search-result" aria-label="Resultado da pesquisa"><div class="profile-head"><div class="avatar">{{ usuario_encontrado.nome[0]|upper }}</div><div><h2 class="profile-name">{{ usuario_encontrado.nome }}</h2><div class="muted">@{{ usuario_encontrado.username }}</div></div></div><div class="stats"><div class="stat"><strong>⭐ {{ usuario_encontrado.xp }}</strong><span>XP</span></div><div class="stat"><strong>🔥 {{ usuario_encontrado.ofensiva }}</strong><span>ofensiva</span></div><div class="stat"><strong>🎯 {{ usuario_encontrado.desafios }}</strong><span>desafios</span></div></div><a class="botao" href="/perfil/{{ usuario_encontrado.username }}">Ver perfil →</a></section>
+    {% else %}<div class="empty">Usuário <strong>@{{ pesquisado }}</strong> não encontrado.</div>{% endif %}{% endif %}
+    <nav class="nav" aria-label="Navegação principal"><a href="/">🏠<br>Início</a><a class="active" href="/pesquisar">🔎<br>Pesquisar</a><a href="/ranking">🏆<br>Ranking</a><a href="/perfil">👤<br>Perfil</a></nav>
+  </main>
 </body>
 </html>
