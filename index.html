@@ -3,122 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criar conta</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #080808;
-      color: white;
-    }
-
-    .card {
-      width: 92%;
-      max-width: 400px;
-      padding: 30px;
-      background: #111;
-      border: 1px solid #292929;
-      border-radius: 18px;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 25px;
-      font-size: 38px;
-    }
-
-    input {
-      width: 100%;
-      padding: 15px;
-      margin-bottom: 12px;
-      border-radius: 10px;
-      border: 1px solid #303030;
-      background: #191919;
-      color: white;
-      font-size: 16px;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: #666;
-    }
-
-    button {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      background: white;
-      color: black;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: .6;
-      cursor: wait;
-    }
-
-    #status {
-      margin-top: 16px;
-      text-align: center;
-      color: #aaa;
-      font-size: 14px;
-    }
-  </style>
+  <meta name="description" content="Crie sua conta no StreakUp e transforme seus objetivos em progresso social.">
+  <title>Criar conta — StreakUp</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <main class="app app--auth">
+    <section class="auth-card" aria-labelledby="page-title">
+      <div class="auth-top">
+        <div class="brand"><span class="brand-mark">🔥</span>StreakUp</div>
+        <p>Conecte-se, evolua e mantenha sua sequência.</p>
+      </div>
 
-  <div class="card">
+      <div class="eyebrow">Comece agora</div>
+      <h1 id="page-title" style="margin: 6px 0 22px">Criar conta</h1>
 
-    <h1>Criar conta</h1>
-
-    <form id="registerForm">
-
-      <input
-        id="name"
-        type="text"
-        placeholder="Nome"
-        required
-      >
-
-      <input
-        id="email"
-        type="email"
-        placeholder="E-mail"
-        required
-      >
-
-      <input
-        id="password"
-        type="password"
-        placeholder="Senha"
-        required
-      >
-
-      <button id="submitButton" type="submit">
-        Criar conta
-      </button>
-
-    </form>
-
-    <div id="status"></div>
-
-  </div>
-
+      <form id="registerForm">
+        <div class="field">
+          <label for="name">Nome</label>
+          <input id="name" type="text" placeholder="Como devemos chamar você?" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input id="email" type="email" placeholder="voce@email.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="password">Senha</label>
+          <input id="password" type="password" placeholder="Crie uma senha segura" autocomplete="new-password" required>
+        </div>
+        <button id="submitButton" type="submit">Criar minha conta <span aria-hidden="true">→</span></button>
+      </form>
+      <div id="status" role="status" aria-live="polite"></div>
+    </section>
+  </main>
   <script src="script.js"></script>
-
 </body>
 </html>
