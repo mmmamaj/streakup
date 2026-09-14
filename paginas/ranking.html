@@ -1,29 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Ranking - StreakUp</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranking — StreakUp</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<main class="app">
-<header><div><div class="brand">🔥 StreakUp</div><div class="handle">Quem está no topo?</div></div></header>
-<div class="section-title"><h1 style="font-size:24px;margin:0">🏆 Ranking</h1><span class="muted">XP</span></div>
-{% if usuarios %}
-{% for usuario in usuarios %}
-<a href="/perfil/{{ usuario.username }}" class="ranking">
-<span class="rank">#{{ loop.index }}</span>
-<div class="avatar" style="width:42px;height:42px;font-size:18px">{{ usuario.nome[0]|upper }}</div>
-<div class="rank-main"><strong>{{ usuario.nome }}</strong><small>@{{ usuario.username }}</small></div>
-<strong class="rank-xp">⭐ {{ usuario.xp }} XP</strong>
-</a>
-{% endfor %}
-{% else %}
-<div class="empty">Ainda não há usuários no ranking.</div>
-{% endif %}
-<nav class="nav">
-<a href="/">🏠<br>Início</a><a href="/pesquisar">🔎<br>Pesquisar</a><a class="active" href="/ranking">🏆<br>Ranking</a><a href="/perfil/{{ usuario.username if usuario is defined else '' }}">👤<br>Perfil</a>
-</nav>
-</main>
+  <main class="app">
+    <header><div><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><div class="handle">Quem está no topo?</div></div></header>
+    <div class="section-title"><div><div class="eyebrow">Comunidade</div><h1 style="margin-top: 4px">Ranking</h1></div><span class="muted">por XP</span></div>
+    {% if usuarios %}{% for usuario in usuarios %}<a href="/perfil/{{ usuario.username }}" class="ranking"><span class="rank">#{{ loop.index }}</span><div class="avatar">{{ usuario.nome[0]|upper }}</div><div class="rank-main"><strong>{{ usuario.nome }}</strong><small>@{{ usuario.username }}</small></div><strong class="rank-xp">⭐ {{ usuario.xp }} XP</strong></a>{% endfor %}{% else %}<div class="empty">Ainda não há usuários no ranking.</div>{% endif %}
+    <nav class="nav" aria-label="Navegação principal"><a href="/">🏠<br>Início</a><a href="/pesquisar">🔎<br>Pesquisar</a><a class="active" href="/ranking">🏆<br>Ranking</a><a href="/perfil">👤<br>Perfil</a></nav>
+  </main>
 </body>
 </html>
