@@ -1,42 +1,23 @@
 # StreakUp
 
-Rede social de progresso pessoal com feed, mídia, comentários, mensagens e suporte a PWA.
+Rede social online com contas reais, perfis, seguidores, vídeos curtos e chat persistente.
 
-## URLs da aplicação
+A página `/perfil` é o feed **For You**, focado em vídeos verticais curtos publicados por usuários reais. O perfil do usuário pode ser aberto pelo botão **Perfil** na navegação inferior ou pela engrenagem, que permanece visível no topo do mobile. A página `/configuracoes` permite editar nome, nome de usuário, foto por URL e senha.
 
-- `/` — criação de conta
-- `/login` — login
-- `/perfil` — feed For You e criação de posts
-- `/chat` — mensagens diretas
+A aplicação usa a database configurada pelo usuário. Os registros de login, perfis, posts, follows, curtidas, salvamentos, republicações, conversas e mensagens são persistidos por endpoints serverless. Não há posts, seguidores ou contatos artificiais: quando a database estiver vazia, o feed e o chat aparecem vazios.
 
-Os arquivos `.html` continuam no projeto como implementação estática, mas `vercel.json` configura as URLs limpas sem a extensão.
+## Rotas
 
-## Funcionalidades do protótipo
+`/` cria conta; `/login` faz login; `/perfil` mostra o For You; `/chat` mostra mensagens; `/configuracoes` abre o perfil e as configurações.
 
-- Feed For You com rolagem e carregamento de mais posts.
-- Publicação de texto, imagem e vídeo pelo navegador.
-- Curtidas, comentários e compartilhamento visual.
-- Posts de demonstração com foto e vídeo.
-- Chat com conversas, seleção de contatos e envio de mensagens.
-- Persistência local de posts, comentários, curtidas e mensagens via `localStorage`.
-- Perfil do usuário após cadastro ou login.
-- PWA instalável com manifesto, service worker e ícone.
+## Variáveis da Vercel
 
-## Estrutura
+Configure `DATABASE_API_KEY` e, opcionalmente, `DATABASE_API_BASE_URL`. O valor padrão de `DATABASE_API_BASE_URL` é o endpoint oficial da documentação da database. A chave nunca deve ir para o navegador.
 
-- `index.html` — cadastro
-- `login.html` — login
-- `perfil.html` — feed social
-- `chat.html` — chat
-- `style` embutido nos HTMLs — identidade visual
-- `script.js` — cadastro
-- `login.js` — login
-- `social.js` — feed, posts, mídia, curtidas e comentários
-- `chat.js` — conversas e mensagens
-- `manifest.json`, `sw.js`, `icon.svg` — PWA
-- `vercel.json` — URLs limpas e configurações da Vercel
-- `api/register.js`, `api/login.js` — endpoints serverless
+## Vídeos
 
-## Observação sobre produção
+O usuário escolhe um vídeo de até 50 MB no perfil. O backend envia o arquivo para o endpoint de arquivos da database, expõe o conteúdo pelo proxy `/api/media` e cria um registro `post`. O For You consulta apenas registros do tipo `post` com `mediaType` igual a `video`.
 
-O feed e o chat desta versão funcionam no navegador usando `localStorage`. Para uma rede social real entre vários usuários e dispositivos, será necessário conectar posts, mídia, curtidas, comentários e mensagens a um banco de dados e a WebSockets ou outra camada de tempo real. A variável `DATABASE_API_KEY` deve ser configurada na Vercel para o cadastro e login.
+## Chat
+
+O chat salva mensagens em registros `chat_email1__email2` e consulta a API periodicamente para atualizar a conversa. É persistente entre dispositivos e usuários. Para segurança de produção, o próximo passo é adicionar sessão assinada/token de usuário no backend; os endpoints atuais usam o e-mail enviado pela sessão local para identificar o remetente.

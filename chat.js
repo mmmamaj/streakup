@@ -1,7 +1,7 @@
 const user = JSON.parse(localStorage.getItem("streakup_user") || "null");
 if (!user) window.location.replace("/login");
 const CONTACTS_KEY = "streakup_contacts";
-const defaultContacts = [{ id: "lia.martins@example.com", name: "Lia Martins", handle: "@liamartins", avatar: "L", online: true }, { id: "caio.nunes@example.com", name: "Caio Nunes", handle: "@caionunes", avatar: "C", online: false }, { id: "bia.costa@example.com", name: "Bia Costa", handle: "@biacosta", avatar: "B", online: true }];
+const defaultContacts = [];
 const contacts = JSON.parse(localStorage.getItem(CONTACTS_KEY) || "null") || defaultContacts;
 let activeContact = contacts[0];
 const list = document.getElementById("conversationList");
