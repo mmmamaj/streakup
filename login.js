@@ -20,7 +20,7 @@ form.addEventListener("submit", async (event) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Não foi possível entrar.");
     localStorage.setItem("streakup_user", JSON.stringify(data.user));
-    window.location.href = "perfil.html";
+    window.location.href = "/perfil";
   } catch (error) {
     status.className = "error";
     status.textContent = error.message;

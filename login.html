@@ -195,7 +195,7 @@ header .botao { width: auto; min-height: 40px; padding: 9px 14px; font-size: 13p
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 
   </style>
-</head>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#080808"><link rel="icon" href="/icon.svg"></head>
 <body>
   <main class="app app--auth">
     <section class="auth-card" aria-labelledby="page-title">
@@ -211,5 +211,5 @@ header .botao { width: auto; min-height: 40px; padding: 9px 14px; font-size: 13p
     </section>
   </main>
   <script src="login.js"></script>
-</body>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script></body>
 </html>

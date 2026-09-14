@@ -21,7 +21,7 @@ if (form && status && button) {
       status.className = "success";
       status.textContent = "Conta criada! Abrindo seu perfil...";
       form.reset();
-      setTimeout(() => { window.location.href = "perfil.html"; }, 500);
+      setTimeout(() => { window.location.href = "/perfil"; }, 500);
     } catch (error) {
       console.error(error);
       status.className = "error";

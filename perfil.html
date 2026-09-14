@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meu perfil — StreakUp</title><style>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="Feed social do StreakUp"><title>For You — StreakUp</title><style>
+
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
 
 :root {
@@ -194,28 +193,31 @@ header .botao { width: auto; min-height: 40px; padding: 9px 14px; font-size: 13p
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 
-  </style>
-</head>
+  
+.social-app { width: min(100% - 24px, 1120px); padding-bottom: 100px; }
+.social-layout { display: grid; grid-template-columns: 220px minmax(0, 650px) 240px; gap: 24px; align-items: start; }
+.social-sidebar, .social-aside { position: sticky; top: 24px; }
+.social-sidebar { display: grid; gap: 8px; padding: 14px; background: rgba(17,17,17,.8); border: 1px solid var(--border); border-radius: 16px; }
+.social-side-link { display: flex; align-items: center; gap: 12px; padding: 12px; color: var(--muted); border-radius: 10px; font-weight: 600; transition: background .16s, color .16s; }
+.social-side-link:hover, .social-side-link.active { color: var(--text); background: rgba(255,255,255,.09); }
+.social-side-link .side-icon { width: 24px; text-align: center; font-size: 20px; }
+.social-aside .mini-card { padding: 18px; background: rgba(17,17,17,.8); border: 1px solid var(--border); border-radius: 16px; }
+.mini-card h3 { font-size: 15px; margin-bottom: 14px; }
+.trend { display: block; padding: 10px 0; border-top: 1px solid #252525; }
+.trend strong, .trend span { display: block; }.trend span { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.social-head { margin-bottom: 18px; }.social-head .brand { font-size: 25px; }
+.feed-tabs { display: flex; gap: 22px; margin: 14px 0; border-bottom: 1px solid var(--border); }.feed-tab { padding: 10px 2px 12px; color: var(--muted); font-weight: 700; border-bottom: 2px solid transparent; }.feed-tab.active { color: var(--text); border-color: var(--text); }
+.composer { padding: 16px; margin-bottom: 14px; background: linear-gradient(145deg, #191919, #111); border: 1px solid var(--border); border-radius: 16px; }.composer-top { display: flex; gap: 12px; }.composer textarea { flex: 1; min-height: 58px; padding: 9px 0; color: var(--text); background: transparent; border: 0; resize: vertical; outline: 0; font: inherit; }.composer textarea::placeholder { color: #777; }.composer-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #2a2a2a; }.composer-tools { display: flex; gap: 8px; }.tool-button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; color: var(--muted); background: transparent; border: 0; border-radius: 8px; cursor: pointer; font-size: 13px; }.tool-button:hover { color: var(--text); background: #262626; }.composer .botao { width: auto; min-height: 36px; padding: 7px 14px; }.composer-media { display: block; max-height: 220px; max-width: 100%; margin: 12px 0 0; border-radius: 10px; object-fit: cover; }
+.post-card { padding: 18px; margin-bottom: 14px; background: rgba(17,17,17,.92); border: 1px solid var(--border); border-radius: 16px; }.post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }.post-author { flex: 1; min-width: 0; }.post-author strong, .post-author span { display: block; }.post-author span { color: var(--muted); font-size: 12px; }.avatar-sm { width: 42px; height: 42px; border-radius: 12px; font-size: 17px; }.icon-button { min-width: 30px; min-height: 30px; padding: 0; color: var(--muted); background: transparent; border: 0; cursor: pointer; }.post-text { margin-bottom: 14px; white-space: pre-wrap; }.post-media { display: block; width: 100%; max-height: 440px; margin: 0 0 14px; background: #050505; border-radius: 11px; object-fit: cover; }.post-actions { display: flex; gap: 15px; padding: 11px 0 2px; border-top: 1px solid #292929; }.post-action { padding: 3px 0; color: var(--muted); background: transparent; border: 0; cursor: pointer; font-size: 13px; }.post-action:hover, .post-action.is-liked { color: #ff9d9d; }.comments { display: grid; gap: 8px; margin-top: 10px; }.comment { display: flex; gap: 8px; padding: 8px 10px; color: var(--muted); background: #191919; border-radius: 9px; font-size: 13px; }.comment strong { color: var(--text); }.comment-form { display: flex; gap: 8px; margin-top: 10px; }.comment-form input { min-height: 36px; padding: 8px 10px; font-size: 12px; }.comment-form button { min-height: 36px; padding: 6px 11px; font-size: 12px; }.load-more { width: 100%; margin: 4px 0 16px; color: var(--muted); background: transparent; border: 1px solid var(--border); }.load-more:hover { color: var(--text); background: #191919; }
+.chat-shell { display: grid; grid-template-columns: 300px 1fr; min-height: 640px; overflow: hidden; background: rgba(17,17,17,.92); border: 1px solid var(--border); border-radius: 18px; }.chat-list { border-right: 1px solid var(--border); }.chat-list-head { padding: 20px; border-bottom: 1px solid var(--border); }.chat-list-head h1 { font-size: 24px; }.conversation { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 16px; color: var(--text); background: transparent; border: 0; border-bottom: 1px solid #242424; text-align: left; cursor: pointer; }.conversation:hover, .conversation.active { background: #202020; }.conversation-copy { flex: 1; min-width: 0; }.conversation-copy strong, .conversation-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.conversation-copy small { color: var(--muted); margin-top: 3px; font-size: 12px; }.online-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }.online-dot.offline { background: #555; }.chat-window { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }.chat-window-head { display: flex; align-items: center; gap: 10px; padding: 15px 18px; border-bottom: 1px solid var(--border); }.chat-window-head div { min-width: 0; }.chat-window-head strong, .chat-window-head span { display: block; }.chat-window-head span { color: var(--muted); font-size: 12px; }.messages { padding: 20px; overflow-y: auto; }.message-row { display: flex; margin-bottom: 10px; }.message-row.mine { justify-content: flex-end; }.message-bubble { max-width: 72%; padding: 10px 13px; background: #252525; border-radius: 13px 13px 13px 3px; font-size: 14px; }.mine .message-bubble { color: #080808; background: var(--text); border-radius: 13px 13px 3px 13px; }.message-form { display: flex; gap: 9px; padding: 14px; border-top: 1px solid var(--border); }.message-form input { min-height: 44px; }.message-form button { width: auto; min-height: 44px; }
+@media (max-width: 920px) { .social-layout { grid-template-columns: 190px minmax(0, 1fr); }.social-aside { display: none; } }
+@media (max-width: 620px) { .social-app { width: min(100% - 16px, 650px); padding-top: 14px; }.social-layout { display: block; }.social-sidebar { position: fixed; z-index: 10; right: 8px; bottom: 8px; left: 8px; display: flex; justify-content: space-around; padding: 5px; background: rgba(17,17,17,.95); backdrop-filter: blur(15px); }.social-side-link { display: grid; justify-items: center; gap: 1px; padding: 7px 10px; font-size: 10px; }.social-side-link .side-icon { font-size: 18px; }.social-head { margin-bottom: 10px; }.chat-shell { grid-template-columns: 1fr; min-height: 680px; }.chat-list { display: none; }.chat-window { min-height: 680px; } }
+
+  </style><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#080808"><link rel="icon" href="/icon.svg"></head>
 <body>
-  <main class="app">
-    <header><div><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><div class="handle">Seu perfil</div></div><button class="botao secundario" id="logoutButton" type="button">Sair</button></header>
-    <section class="perfil-card" aria-labelledby="profileName">
-      <div class="profile-head"><div class="avatar" id="avatar">S</div><div><h1 class="profile-name" id="profileName">Seu perfil</h1><div class="muted" id="profileEmail"></div></div></div>
-      <div class="stats"><div class="stat"><strong>🏆 1</strong><span>nível</span></div><div class="stat"><strong>⭐ 0</strong><span>XP</span></div><div class="stat"><strong>🔥 0</strong><span>ofensiva</span></div></div>
-      <div class="progress-meta"><strong>Progresso</strong><span class="muted">0/100 XP</span></div><div class="barra"><div class="progresso" style="width: 4%"></div></div>
-    </section>
-    <div class="section-title"><h2>🎯 Seus desafios</h2></div><div class="empty">Você ainda não tem desafios. Em breve poderá criar sua primeira meta.</div>
-    <nav class="nav" aria-label="Navegação principal"><a class="active" href="perfil.html">👤<br>Perfil</a><a href="index.html">＋<br>Início</a><a href="login.html">↪<br>Conta</a></nav>
-  </main>
-  <script>
-    const user = JSON.parse(localStorage.getItem("streakup_user") || "null");
-    if (!user) window.location.replace("login.html");
-    else {
-      document.getElementById("profileName").textContent = user.name || "Seu perfil";
-      document.getElementById("profileEmail").textContent = user.email || "";
-      document.getElementById("avatar").textContent = (user.name || "S").trim().charAt(0).toUpperCase();
-    }
-    document.getElementById("logoutButton").addEventListener("click", () => { localStorage.removeItem("streakup_user"); window.location.replace("login.html"); });
-  </script>
-</body>
-</html>
+<main class="app social-app"><header class="social-head"><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><button class="botao secundario" id="logoutButton" type="button">Sair</button></header>
+<div class="social-layout"><nav class="social-sidebar" aria-label="Navegação"><a class="social-side-link active" href="/perfil"><span class="side-icon">⌂</span><span>For You</span></a><a class="social-side-link" href="/chat"><span class="side-icon">◌</span><span>Mensagens</span></a><a class="social-side-link" href="#composer"><span class="side-icon">＋</span><span>Postar</span></a><a class="social-side-link" href="/perfil#profile"><span class="side-icon">◉</span><span>Perfil</span></a></nav>
+<section><div class="feed-tabs"><a class="feed-tab active" href="/perfil">For You</a><a class="feed-tab" href="#following">Seguindo</a></div>
+<form class="composer" id="composer"><div class="composer-top"><div class="avatar avatar-sm" id="composerAvatar">V</div><textarea id="postText" placeholder="O que está acontecendo na sua jornada?" maxlength="600"></textarea></div><div id="mediaPreview"></div><div class="composer-bottom"><div class="composer-tools"><label class="tool-button" for="mediaInput">▧ Foto/vídeo</label><input class="visually-hidden" id="mediaInput" type="file" accept="image/*,video/*"></div><button class="botao" type="submit">Publicar</button></div></form>
+<div id="feed"></div><button class="load-more" id="loadMore" type="button">Carregar mais posts</button></section>
+<aside class="social-aside"><div class="mini-card"><h3>Em alta hoje</h3><a class="trend" href="#"><strong>#foco</strong><span>2,4 mil posts</span></a><a class="trend" href="#"><strong>#desafio30dias</strong><span>1,8 mil posts</span></a><a class="trend" href="#"><strong>#streakup</strong><span>954 posts</span></a></div><div class="mini-card" style="margin-top: 14px"><h3>Seu progresso</h3><div class="stat"><strong>🔥 7 dias</strong><span>melhor sequência</span></div></div></aside></div></main><script src="social.js"></script><script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script></body></html>
