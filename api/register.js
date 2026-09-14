@@ -1,3 +1,5 @@
+const API_BASE = process.env.DATABASE_API_BASE_URL || "https://project--457ce288-fa2b-4352-8338-3bf307534ab0.lovable.app/api/public/v1";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -7,8 +9,10 @@ export default async function handler(req, res) {
 
   try {
     const { name, email, password } = req.body || {};
+    const usuario = String(email || "").trim().toLowerCase();
+    const nome = String(name || "").trim();
 
-    if (!name || !email || !password) {
+    if (!nome || !usuario || !password) {
       return res.status(400).json({
         error: "Preencha todos os campos."
       });
@@ -23,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     const response = await fetch(
-      "https://databasen3t.lovable.app/api/public/v1/records",
+        `${API_BASE}/records`,
       {
         method: "POST",
         headers: {
@@ -31,12 +35,12 @@ export default async function handler(req, res) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          chave: `login_${email.toLowerCase()}`,
+          chave: `login_${usuario}`,
           tipo: "login",
           data: {
-            usuario: email,
+            usuario,
             senha: password,
-            nome: name
+            nome
           }
         })
       }

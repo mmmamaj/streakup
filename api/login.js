@@ -1,11 +1,4 @@
-function extractRecord(payload) {
-  if (!payload) return null;
-  if (payload.registro) return payload.registro;
-  if (payload.record) return payload.record;
-  if (Array.isArray(payload.records)) return payload.records[0] || null;
-  if (Array.isArray(payload.data)) return payload.data[0] || null;
-  return payload;
-}
+const API_BASE = process.env.DATABASE_API_BASE_URL || "https://project--457ce288-fa2b-4352-8338-3bf307534ab0.lovable.app/api/public/v1";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -14,37 +7,52 @@ export default async function handler(req, res) {
 
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) {
+    const usuario = String(email || "").trim().toLowerCase();
+
+    if (!usuario || !password) {
       return res.status(400).json({ error: "Informe e-mail e senha." });
     }
 
     const apiKey = process.env.DATABASE_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: "DATABASE_API_KEY não configurada." });
+      return res.status(500).json({ error: "DATABASE_API_KEY não configurada na Vercel." });
     }
 
-    const chave = `login_${String(email).trim().toLowerCase()}`;
-    const response = await fetch(
-      `https://databasen3t.lovable.app/api/public/v1/records?chave=${encodeURIComponent(chave)}`,
-      { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } }
-    );
+    const chave = `login_${usuario}`;
+    const response = await fetch(`${API_BASE}/records/${encodeURIComponent(chave)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json"
+      }
+    });
+
+    if (response.status === 404) {
+      return res.status(401).json({ error: "E-mail ou senha inválidos." });
+    }
+
     const text = await response.text();
     let payload;
-    try { payload = JSON.parse(text); } catch { payload = null; }
-
-    if (!response.ok) {
-      return res.status(response.status === 404 ? 401 : response.status).json({ error: "E-mail ou senha inválidos." });
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      return res.status(502).json({ error: "A database retornou uma resposta inválida." });
     }
 
-    const record = extractRecord(payload);
-    const data = record?.data || record;
-    if (!data || data.usuario?.toLowerCase() !== String(email).trim().toLowerCase() || data.senha !== password) {
+    if (!response.ok) {
+      return res.status(response.status).json({ error: payload.error || payload.message || "Erro ao consultar a database." });
+    }
+
+    const data = payload.registro?.data || payload.registro || {};
+    const savedEmail = String(data.usuario || "").trim().toLowerCase();
+
+    if (savedEmail !== usuario || String(data.senha || "") !== String(password)) {
       return res.status(401).json({ error: "E-mail ou senha inválidos." });
     }
 
     return res.status(200).json({
       success: true,
-      user: { name: data.nome || "Usuário", email: data.usuario }
+      user: { name: data.nome || "Usuário", email: savedEmail }
     });
   } catch (error) {
     console.error(error);
