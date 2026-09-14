@@ -1,14 +1,9 @@
-const CHAT_KEY = "streakup_chats";
 const user = JSON.parse(localStorage.getItem("streakup_user") || "null");
 if (!user) window.location.replace("/login");
-const conversations = [
-  { id: "lia", name: "Lia Martins", handle: "@liamartins", avatar: "L", preview: "Bora manter a sequência?", online: true },
-  { id: "caio", name: "Caio Nunes", handle: "@caionunes", avatar: "C", preview: "Vi seu novo post!", online: false },
-  { id: "bia", name: "Bia Costa", handle: "@biacosta", avatar: "B", preview: "Qual hábito você está construindo?", online: true }
-];
-const getChats = () => JSON.parse(localStorage.getItem(CHAT_KEY) || "{}");
-const saveChats = (data) => localStorage.setItem(CHAT_KEY, JSON.stringify(data));
-let activeId = "lia";
+const CONTACTS_KEY = "streakup_contacts";
+const defaultContacts = [{ id: "lia.martins@example.com", name: "Lia Martins", handle: "@liamartins", avatar: "L", online: true }, { id: "caio.nunes@example.com", name: "Caio Nunes", handle: "@caionunes", avatar: "C", online: false }, { id: "bia.costa@example.com", name: "Bia Costa", handle: "@biacosta", avatar: "B", online: true }];
+const contacts = JSON.parse(localStorage.getItem(CONTACTS_KEY) || "null") || defaultContacts;
+let activeContact = contacts[0];
 const list = document.getElementById("conversationList");
 const messages = document.getElementById("messages");
 const chatTitle = document.getElementById("chatTitle");
@@ -16,22 +11,27 @@ const chatHandle = document.getElementById("chatHandle");
 const chatAvatar = document.getElementById("chatAvatar");
 const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
+const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
 
 function renderList() {
-  const chats = getChats();
-  list.innerHTML = conversations.map((chat) => { const items = chats[chat.id] || []; const last = items.at(-1)?.text || chat.preview; return `<button class="conversation ${activeId === chat.id ? "active" : ""}" data-chat="${chat.id}"><span class="avatar avatar-sm">${chat.avatar}</span><span class="conversation-copy"><strong>${chat.name}</strong><small>${last}</small></span><i class="online-dot ${chat.online ? "" : "offline"}"></i></button>`; }).join("");
+  list.innerHTML = contacts.map((contact) => `<button class="conversation ${activeContact?.id === contact.id ? "active" : ""}" data-contact="${escapeHtml(contact.id)}"><span class="avatar avatar-sm">${escapeHtml(contact.avatar)}</span><span class="conversation-copy"><strong>${escapeHtml(contact.name)}</strong><small>${escapeHtml(contact.handle)}</small></span><i class="online-dot ${contact.online ? "" : "offline"}"></i></button>`).join("");
 }
-function renderMessages() {
-  const chat = conversations.find((item) => item.id === activeId);
-  const chats = getChats();
-  chatTitle.textContent = chat.name;
-  chatHandle.textContent = `${chat.handle} · ${chat.online ? "online agora" : "visto recentemente"}`;
-  chatAvatar.textContent = chat.avatar;
-  messages.innerHTML = (chats[activeId] || [{ from: "them", text: `Oi! Vi que você também está no StreakUp. ${chat.preview}` }]).map((item) => `<div class="message-row ${item.from === "me" ? "mine" : "theirs"}"><div class="message-bubble">${item.text.replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]))}</div></div>`).join("");
-  messages.scrollTop = messages.scrollHeight;
+async function loadMessages() {
+  if (!activeContact) return;
+  chatTitle.textContent = activeContact.name;
+  chatHandle.textContent = `${activeContact.handle} · conversa persistente`;
+  chatAvatar.textContent = activeContact.avatar;
+  try {
+    const response = await fetch(`/api/chat?me=${encodeURIComponent(user.email)}&with=${encodeURIComponent(activeContact.id)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    messages.innerHTML = (data.messages || []).map((item) => `<div class="message-row ${item.from === user.email.toLowerCase() ? "mine" : "theirs"}"><div class="message-bubble">${escapeHtml(item.text)}</div></div>`).join("") || `<div class="empty">Nenhuma mensagem ainda. Comece a conversa.</div>`;
+    messages.scrollTop = messages.scrollHeight;
+  } catch (error) { messages.innerHTML = `<div class="empty">Não foi possível carregar a conversa agora.</div>`; }
 }
-list.addEventListener("click", (event) => { const button = event.target.closest("[data-chat]"); if (!button) return; activeId = button.dataset.chat; renderList(); renderMessages(); });
-messageForm.addEventListener("submit", (event) => { event.preventDefault(); const text = messageInput.value.trim(); if (!text) return; const chats = getChats(); chats[activeId] = [...(chats[activeId] || []), { from: "me", text }]; saveChats(chats); messageInput.value = ""; renderList(); renderMessages(); });
+list.addEventListener("click", (event) => { const button = event.target.closest("[data-contact]"); if (!button) return; activeContact = contacts.find((contact) => contact.id === button.dataset.contact); renderList(); loadMessages(); });
+messageForm.addEventListener("submit", async (event) => { event.preventDefault(); const text = messageInput.value.trim(); if (!text || !activeContact) return; const button = messageForm.querySelector("button"); button.disabled = true; try { const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ me: user.email, with: activeContact.id, text }) }); if (!response.ok) throw new Error("Falha ao enviar"); messageInput.value = ""; await loadMessages(); } catch { alert("Não foi possível enviar a mensagem."); } finally { button.disabled = false; } });
 document.getElementById("logoutButton").addEventListener("click", () => { localStorage.removeItem("streakup_user"); window.location.replace("/login"); });
 document.getElementById("myAvatar").textContent = (user?.name || "V").charAt(0).toUpperCase();
-renderList(); renderMessages();
+renderList(); loadMessages();
+setInterval(loadMessages, 4000);
