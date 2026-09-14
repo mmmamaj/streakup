@@ -2,8 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Crie sua conta no StreakUp e transforme seus objetivos em progresso social.">
-  <title>Criar conta — StreakUp</title><style>
+  <title>Meu perfil — StreakUp</title><style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
 
 :root {
@@ -198,20 +197,25 @@ header .botao { width: auto; min-height: 40px; padding: 9px 14px; font-size: 13p
   </style>
 </head>
 <body>
-  <main class="app app--auth">
-    <section class="auth-card" aria-labelledby="page-title">
-      <div class="auth-top"><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><p>Conecte-se, evolua e mantenha sua sequência.</p></div>
-      <div class="eyebrow">Comece agora</div><h1 id="page-title" style="margin: 6px 0 22px">Criar conta</h1>
-      <form id="registerForm">
-        <div class="field"><label for="name">Nome</label><input id="name" type="text" placeholder="Como devemos chamar você?" autocomplete="name" required></div>
-        <div class="field"><label for="email">E-mail</label><input id="email" type="email" placeholder="voce@email.com" autocomplete="email" required></div>
-        <div class="field"><label for="password">Senha</label><input id="password" type="password" placeholder="Crie uma senha segura" autocomplete="new-password" required></div>
-        <button id="submitButton" type="submit">Criar minha conta <span aria-hidden="true">→</span></button>
-      </form>
-      <div id="status" role="status" aria-live="polite"></div>
-      <p style="margin-top: 20px; color: var(--muted); text-align: center; font-size: 13px">Já tem uma conta? <a href="login.html" style="text-decoration: underline">Entrar</a></p>
+  <main class="app">
+    <header><div><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><div class="handle">Seu perfil</div></div><button class="botao secundario" id="logoutButton" type="button">Sair</button></header>
+    <section class="perfil-card" aria-labelledby="profileName">
+      <div class="profile-head"><div class="avatar" id="avatar">S</div><div><h1 class="profile-name" id="profileName">Seu perfil</h1><div class="muted" id="profileEmail"></div></div></div>
+      <div class="stats"><div class="stat"><strong>🏆 1</strong><span>nível</span></div><div class="stat"><strong>⭐ 0</strong><span>XP</span></div><div class="stat"><strong>🔥 0</strong><span>ofensiva</span></div></div>
+      <div class="progress-meta"><strong>Progresso</strong><span class="muted">0/100 XP</span></div><div class="barra"><div class="progresso" style="width: 4%"></div></div>
     </section>
+    <div class="section-title"><h2>🎯 Seus desafios</h2></div><div class="empty">Você ainda não tem desafios. Em breve poderá criar sua primeira meta.</div>
+    <nav class="nav" aria-label="Navegação principal"><a class="active" href="perfil.html">👤<br>Perfil</a><a href="index.html">＋<br>Início</a><a href="login.html">↪<br>Conta</a></nav>
   </main>
-  <script src="script.js"></script>
+  <script>
+    const user = JSON.parse(localStorage.getItem("streakup_user") || "null");
+    if (!user) window.location.replace("login.html");
+    else {
+      document.getElementById("profileName").textContent = user.name || "Seu perfil";
+      document.getElementById("profileEmail").textContent = user.email || "";
+      document.getElementById("avatar").textContent = (user.name || "S").trim().charAt(0).toUpperCase();
+    }
+    document.getElementById("logoutButton").addEventListener("click", () => { localStorage.removeItem("streakup_user"); window.location.replace("login.html"); });
+  </script>
 </body>
 </html>
