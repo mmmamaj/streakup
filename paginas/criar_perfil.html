@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Criar perfil - StreakUp</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="app">
+  <header>
+    <div><div class="brand">🔥 StreakUp</div><div class="handle">Sua jornada começa agora</div></div>
+  </header>
+  <section class="form-card" style="padding:24px;margin-top:22px">
+    <div class="section-title"><h2>👤 Criar seu perfil</h2></div>
+    <p class="muted">Escolha como você quer aparecer para outras pessoas na rede.</p>
+    {% if erro %}<div class="erro">{{ erro }}</div>{% endif %}
+    <form method="POST">
+      <input type="text" name="nome" placeholder="Seu nome" required>
+      <input type="text" name="username" placeholder="@nome_de_usuario" required>
+      <p class="muted" style="font-size:13px">Seu nome de usuário será usado para outras pessoas encontrarem seu perfil.</p>
+      <button class="botao" type="submit">🚀 Criar perfil</button>
+    </form>
+  </section>
+</main>
+</body>
+</html>
