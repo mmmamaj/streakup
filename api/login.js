@@ -31,7 +31,8 @@ export default async function handler(req, res) {
         name: data.nome || data.name || "Usuário",
         email: savedEmail,
         username: data.username || savedEmail.split("@")[0],
-        avatarUrl: data.avatarUrl || ""
+        avatarUrl: data.avatarUrl || "",
+        publicProfile: data.publicProfile !== false
       }
     });
   } catch (error) {

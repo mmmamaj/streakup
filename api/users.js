@@ -37,6 +37,7 @@ export default async function handler(req, res) {
     const result = [...users.values()]
       .filter((user) => user.email !== me)
       .filter((user) => !query || [user.email, user.name, user.username].some((value) => normalize(value).includes(query)))
+      .map((user) => ({ ...user, canMessage: records.some((record) => record.tipo === "follow" && normalize(record.data?.follower) === user.email && (normalize(record.data?.following) === me || normalize(record.data?.followingUsername) === me)) }))
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
     return res.status(200).json({ users: result });
   } catch (error) {
