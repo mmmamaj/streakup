@@ -57,14 +57,29 @@ async function searchGlobal(query) {
     const response = await fetch(`/api/social?type=search&q=${encodeURIComponent(query)}&me=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
     const data = await response.json(); if (!response.ok) throw Error();
     box.hidden = false;
-    const users = (data.users || []).map((person) => `<button class="search-result-row" data-profile-search="${esc(person.username)}">${avatarHtml(person.name, person.avatarUrl)}<span><strong>${esc(person.name)}</strong><small>@${esc(person.username)} · perfil</small></span></button>`).join("");
+    const users = (data.users || []).map((person) => `<button class="search-result-row" type="button" data-profile-search="${esc(person.username)}">${avatarHtml(person.name, person.avatarUrl)}<span><strong>${esc(person.name)}</strong><small>@${esc(person.username)} · perfil</small></span><b aria-hidden="true">›</b></button>`).join("");
     const posts = (data.posts || []).map((post) => `<button class="search-result-row" data-post-search="${esc(post.id)}"><video class="search-video" src="${esc(post.mediaUrl)}" muted></video><span><strong>${esc(post.authorName)}</strong><small>${esc(post.text || "Vídeo")}</small></span></button>`).join("");
     box.innerHTML = `<h3>Usuários</h3>${users || `<div class="search-empty">Nenhum usuário encontrado.</div>`}<h3>Vídeos</h3>${posts || `<div class="search-empty">Nenhum vídeo encontrado.</div>`}`;
   } catch { box.hidden = false; box.innerHTML = `<div class="search-empty">Busca indisponível agora.</div>`; }
 }
 document.getElementById("globalSearchForm")?.addEventListener("submit", (event) => { event.preventDefault(); searchGlobal(document.getElementById("globalSearchInput").value.trim()); });
 document.getElementById("globalSearchInput")?.addEventListener("input", (event) => searchGlobal(event.target.value.trim()));
-document.getElementById("searchResults")?.addEventListener("click", (event) => { const profile = event.target.closest("[data-profile-search]"); if (profile) { const username = profile.dataset.profileSearch; history.pushState({ profile: username }, "", `/perfil?u=${encodeURIComponent(username)}`); profilePanel.classList.add("open"); loadProfile(); profilePanel.scrollIntoView({ behavior: "smooth", block: "start" }); return; } const post = event.target.closest("[data-post-search]"); if (post) document.querySelector(`[data-id="${CSS.escape(post.dataset.postSearch)}"]`)?.scrollIntoView({ behavior: "smooth" }); });
+document.getElementById("searchResults")?.addEventListener("click", (event) => {
+  const profile = event.target.closest("[data-profile-search]");
+  if (profile) {
+    const username = profile.dataset.profileSearch;
+    history.pushState({ profile: username }, "", `/perfil?u=${encodeURIComponent(username)}`);
+    profilePanel.classList.add("open");
+    const results = document.getElementById("searchResults");
+    if (results) results.hidden = true;
+    clearProfilePanel();
+    loadProfile();
+    profilePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const post = event.target.closest("[data-post-search]");
+  if (post) document.querySelector(`[data-id="${CSS.escape(post.dataset.postSearch)}"]`)?.scrollIntoView({ behavior: "smooth" });
+});
 
 async function loadRecommendations() {
   const list = document.getElementById("recommendationList"); if (!list) return;
@@ -77,19 +92,44 @@ async function loadRecommendations() {
 document.getElementById("recommendationList")?.addEventListener("click", async (event) => { const button = event.target.closest("[data-recommend-follow]"); if (!button) return; button.disabled = true; const response = await fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "follow", me: currentEmail, target: button.dataset.recommendFollow, following: true }) }); if (response.ok) { button.textContent = "Seguindo"; loadRecommendations(); } else button.disabled = false; });
 document.getElementById("refreshRecommendations")?.addEventListener("click", loadRecommendations);
 
+function clearProfilePanel() {
+  document.getElementById("profileName").textContent = "Carregando...";
+  document.getElementById("profileUsername").textContent = "";
+  document.getElementById("profileBio").textContent = "";
+  document.getElementById("postsCount").textContent = "—";
+  document.getElementById("followersCount").textContent = "—";
+  document.getElementById("followingCount").textContent = "—";
+  const avatar = document.getElementById("profileAvatar");
+  avatar.textContent = "";
+  avatar.style.backgroundImage = "";
+}
+
 async function loadProfile() {
   const params = new URLSearchParams(location.search);
   const target = params.get("u") || currentEmail;
+  const isOwnRoute = !params.has("u");
+  clearProfilePanel();
   try {
-    const response = await fetch(`/api/social?type=profile&email=${encodeURIComponent(target)}&username=${encodeURIComponent(target)}&viewer=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
+    const query = isOwnRoute
+      ? `email=${encodeURIComponent(currentEmail)}`
+      : `identifier=${encodeURIComponent(target)}`;
+    const response = await fetch(`/api/social?type=profile&${query}&viewer=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
     const data = await response.json();
-    if (!response.ok) throw Error(data.error);
+    if (!response.ok) throw Error(data.error || "Perfil não encontrado.");
     const p = data.profile;
     const isOwnProfile = String(p.email).toLowerCase() === currentEmail;
     document.getElementById("postComposer").hidden = !isOwnProfile;
     document.getElementById("recommendations").hidden = !isOwnProfile;
     document.getElementById("storiesBar").hidden = !isOwnProfile;
-    if (!isOwnProfile) { posts = data.posts || []; feedType = "profile"; render(); }
+    if (!isOwnProfile) {
+      posts = data.posts || [];
+      feedType = "profile";
+      render();
+    } else if (isOwnRoute) {
+      posts = [];
+      feedType = "feed";
+      loadFeed();
+    }
     document.getElementById("profileName").textContent = p.name;
     document.getElementById("profileUsername").textContent = `@${p.username}`;
     document.getElementById("profileBio").textContent = p.bio || "";
@@ -98,23 +138,33 @@ async function loadProfile() {
     document.getElementById("postsCount").textContent = p.posts;
     const avatar = document.getElementById("profileAvatar");
     avatar.textContent = p.avatarUrl ? "" : (p.name || "U").charAt(0).toUpperCase();
-    avatar.style.backgroundImage = p.avatarUrl ? `url(${p.avatarUrl})` : "";
+    avatar.style.backgroundImage = p.avatarUrl ? `url("${p.avatarUrl.replace(/"/g, '%22')}")` : "";
     avatar.style.backgroundSize = "cover";
     avatar.style.backgroundPosition = "center";
     const followButton = document.getElementById("followButton");
+    const editButton = document.getElementById("profileEditButton");
+    const storyButton = document.getElementById("storyFromProfile");
     if (isOwnProfile) {
       followButton.hidden = true;
-      document.getElementById("profileEditButton").hidden = false;
+      editButton.hidden = false;
+      storyButton.hidden = false;
     } else {
       followButton.hidden = false;
-      document.getElementById("profileEditButton").hidden = true;
+      editButton.hidden = true;
+      storyButton.hidden = true;
       followButton.textContent = p.followingMe ? "Seguindo" : "Seguir";
+      followButton.classList.toggle("is-following", Boolean(p.followingMe));
       followButton.onclick = () => toggleFollow(p.email, followButton);
     }
     if (params.has("u")) profilePanel.classList.add("open");
-  } catch { document.getElementById("profileName").textContent = "Perfil indisponível"; }
+  } catch (error) {
+    document.getElementById("profileName").textContent = "Perfil indisponível";
+    document.getElementById("profileUsername").textContent = "";
+    document.getElementById("profileBio").textContent = error.message || "Não foi possível carregar este perfil.";
+    document.getElementById("followButton").hidden = true;
+    document.getElementById("profileEditButton").hidden = true;
+  }
 }
-
 async function toggleFollow(target, button) {
   button.disabled = true;
   const following = button.textContent !== "Seguindo";
@@ -188,7 +238,25 @@ feed.addEventListener("click", async (event) => {
   fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interaction", me: currentEmail, postId: id, kind, active: current[kind] }) }).catch(() => {});
 });
 
-document.getElementById("profileToggle")?.addEventListener("click", (event) => { event.preventDefault(); profilePanel.classList.toggle("open"); if (profilePanel.classList.contains("open")) profilePanel.scrollIntoView({ behavior: "smooth", block: "start" }); });
+document.getElementById("profileToggle")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  history.pushState({}, "", "/perfil");
+  profilePanel.classList.add("open");
+  loadProfile();
+  profilePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+window.addEventListener("popstate", () => {
+  if (new URLSearchParams(location.search).has("u")) {
+    profilePanel.classList.add("open");
+    loadProfile();
+  } else {
+    profilePanel.classList.remove("open");
+    document.getElementById("postComposer").hidden = false;
+    document.getElementById("recommendations").hidden = false;
+    document.getElementById("storiesBar").hidden = false;
+    loadFeed();
+  }
+});
 document.getElementById("postToggle")?.addEventListener("click", (event) => { if (new URLSearchParams(location.search).has("u")) { event.preventDefault(); window.location.href = "/perfil#postComposer"; return; } event.preventDefault(); postForm?.scrollIntoView({ behavior: "smooth", block: "center" }); });
 document.getElementById("searchNav")?.addEventListener("click", () => setTimeout(() => document.getElementById("globalSearchInput")?.focus(), 100));
 document.getElementById("profileEditButton")?.addEventListener("click", () => { window.location.href = "/configuracoes"; });
