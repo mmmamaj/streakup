@@ -10,6 +10,9 @@
   };
   async function getRegistration() {
     if (!('serviceWorker' in navigator)) return null;
+    const existing = await navigator.serviceWorker.getRegistration('/');
+    if (existing) return existing;
+    try { await navigator.serviceWorker.register('/sw.js'); } catch {}
     return navigator.serviceWorker.ready;
   }
   async function subscribe() {
@@ -17,12 +20,14 @@
       const reg = await getRegistration();
       if (!reg || !('PushManager' in window)) return false;
       const keyResponse = await fetch('/api/push?action=publicKey', { cache: 'no-store' });
-      if (!keyResponse.ok) return false;
-      const { publicKey } = await keyResponse.json();
-      if (!publicKey) return false;
+      const keyData = await keyResponse.json().catch(() => ({}));
+      if (!keyResponse.ok) { console.warn('RiseUp Push: servidor recusou a chave VAPID.', keyData.error || keyResponse.status); return false; }
+      const { publicKey } = keyData;
+      if (!publicKey) { console.warn('RiseUp Push: VAPID_PUBLIC_KEY vazia.'); return false; }
       let subscription = await reg.pushManager.getSubscription();
       if (!subscription) subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(publicKey) });
-      await fetch('/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'subscribe', email, subscription: subscription.toJSON() }) });
+      const saved = await fetch('/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'subscribe', email, subscription: subscription.toJSON() }) });
+      if (!saved.ok) { const data = await saved.json().catch(() => ({})); console.warn('RiseUp Push: assinatura não foi salva.', data.error || saved.status); return false; }
       localStorage.setItem(key, '1');
       return true;
     } catch (error) {

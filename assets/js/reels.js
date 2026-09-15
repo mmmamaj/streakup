@@ -267,7 +267,7 @@ function updatePostNavVisibility(){
   const plus=document.getElementById('postToggle');
   if(!plus)return;
   const params=new URLSearchParams(location.search);
-  const isForYou=!params.has('u') && (location.hash==='' || location.hash==='#foryou' || location.pathname==='/perfil');
+  const isForYou=!params.has('u') && (location.hash==='' || location.hash==='#foryou');
   plus.classList.toggle('is-hidden',!isForYou);
 }
 updatePostNavVisibility();
