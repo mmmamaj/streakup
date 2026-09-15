@@ -1,4 +1,4 @@
-const CACHE_NAME = "streakup-v5-online";
+const CACHE_NAME = "streakup-v6-online";
 const APP_SHELL = ["/", "/index.html", "/login.html", "/perfil.html", "/chat.html", "/configuracoes.html", "/script.js", "/theme.js", "/theme-fix.css", "/notifications.js", "/streakup-logo.png", "/login.js", "/reels.js", "/chat.js", "/settings.js", "/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {

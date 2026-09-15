@@ -57,7 +57,7 @@ async function searchGlobal(query) {
 }
 document.getElementById("globalSearchForm")?.addEventListener("submit", (event) => { event.preventDefault(); searchGlobal(document.getElementById("globalSearchInput").value.trim()); });
 document.getElementById("globalSearchInput")?.addEventListener("input", (event) => searchGlobal(event.target.value.trim()));
-document.getElementById("searchResults")?.addEventListener("click", (event) => { const profile = event.target.closest("[data-profile-search]"); if (profile) window.location.href = `/perfil?u=${encodeURIComponent(profile.dataset.profileSearch)}`; const post = event.target.closest("[data-post-search]"); if (post) document.querySelector(`[data-id="${CSS.escape(post.dataset.postSearch)}"]`)?.scrollIntoView({ behavior: "smooth" }); });
+document.getElementById("searchResults")?.addEventListener("click", (event) => { const profile = event.target.closest("[data-profile-search]"); if (profile) { const username = profile.dataset.profileSearch; history.pushState({ profile: username }, "", `/perfil?u=${encodeURIComponent(username)}`); profilePanel.classList.add("open"); loadProfile(); profilePanel.scrollIntoView({ behavior: "smooth", block: "start" }); return; } const post = event.target.closest("[data-post-search]"); if (post) document.querySelector(`[data-id="${CSS.escape(post.dataset.postSearch)}"]`)?.scrollIntoView({ behavior: "smooth" }); });
 
 async function loadRecommendations() {
   const list = document.getElementById("recommendationList"); if (!list) return;
