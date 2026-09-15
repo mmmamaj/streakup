@@ -1,4 +1,4 @@
-/* StreakUp visual polish: loaded after page styles so both themes remain consistent. */
+/* RiseUp visual polish: loaded after page styles so both themes remain consistent. */
 :root[data-theme="light"] {
   --bg: #f4f6fb !important;
   --surface: #ffffff !important;
