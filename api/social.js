@@ -77,11 +77,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ posts: sortNewest(posts) });
       }
       if (type === "profile") {
-        const profile = profileFromRecords(records, req.query?.email || req.query?.username);
+        const profile = profileFromRecords(records, req.query?.identifier || req.query?.username || req.query?.email);
         if (!profile) return res.status(404).json({ error: "Perfil não encontrado." });
         const follows = records.filter((record) => record.tipo === "follow");
         const canView = profile.publicProfile || profile.email === viewer || isFollowing(records, viewer, profile.email);
-        const profileNames = new Set([profile.email, profile.username]);
+        const profileNames = new Set([norm(profile.email), norm(profile.username)]);
         profile.followers = follows.filter((record) => profileNames.has(norm(record.data?.following)) || profileNames.has(norm(record.data?.followingUsername))).length;
         profile.following = follows.filter((record) => profileNames.has(norm(record.data?.follower)) || profileNames.has(norm(record.data?.followerUsername))).length;
         profile.followingMe = isFollowing(records, viewer, profile.email);
