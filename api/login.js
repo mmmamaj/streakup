@@ -32,7 +32,13 @@ export default async function handler(req, res) {
         email: savedEmail,
         username: data.username || savedEmail.split("@")[0],
         avatarUrl: data.avatarUrl || "",
-        publicProfile: data.publicProfile !== false
+        publicProfile: data.publicProfile !== false,
+        bio: data.bio || "",
+        language: data.language || "pt-BR",
+        productivityLevel: data.productivityLevel || "flex",
+        dailyVideoLimitMinutes: Number(data.dailyVideoLimitMinutes || 60),
+        videoUntil: data.videoUntil || "22:00",
+        interests: Array.isArray(data.interests) ? data.interests : []
       }
     });
   } catch (error) {
