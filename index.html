@@ -23,6 +23,7 @@
   --shadow: 0 18px 60px rgba(0, 0, 0, .34);
 }
 
+[hidden] { display: none !important; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { min-height: 100%; background: var(--bg); }
@@ -196,16 +197,35 @@ header .botao { width: auto; min-height: 40px; padding: 9px 14px; font-size: 13p
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 
   </style>
-<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#080808"><link rel="icon" href="/icon.svg"></head>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#080808"><link rel="icon" href="/icon.svg"><style>
+:root[data-theme="light"] { --bg:#f5f7fb; --surface:#ffffff; --surface-2:#eef1f7; --surface-3:#e4e8f0; --border:#d7dce7; --border-light:#c2cad8; --text:#101524; --muted:#5e6678; --muted-2:#7d8699; --accent:#101524; --success:#137a4b; --shadow:0 18px 60px rgba(39,55,86,.12); }
+:root[data-theme="light"] body { background: radial-gradient(circle at 50% -10%,#e8edff 0,transparent 36%),var(--bg); }
+:root[data-theme="light"] .brand-mark { color:#fff; background:linear-gradient(135deg,#ff4d68,#ffb21c); }
+:root[data-theme="light"] .reel-card video { background:#dfe5f0; }
+.brand-mark { overflow:hidden; background:linear-gradient(135deg,#ff4d68,#ffb21c); color:#fff; }
+.brand-logo { width:100%; height:100%; object-fit:cover; display:block; }
+.brand-text { background:linear-gradient(90deg,#ff4d68,#ffb21c,#9d5cff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.theme-button,.notification-button { position:relative; display:inline-grid; place-items:center; width:42px; height:42px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:13px; cursor:pointer; }
+.notification-badge { position:absolute; top:-5px; right:-5px; min-width:18px; padding:1px 5px; color:#fff; background:#f3425f; border:2px solid var(--bg); border-radius:99px; font-size:10px; line-height:15px; }
+.notification-panel { position:fixed; z-index:40; top:72px; right:20px; display:none; width:min(360px,calc(100vw - 24px)); max-height:70vh; overflow:auto; padding:10px; background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); }
+.notification-panel.open { display:block; }
+.notification-panel h3 { padding:8px 10px 12px; font-size:16px; }
+.notification-item { display:flex; align-items:flex-start; gap:10px; width:100%; padding:11px 10px; color:var(--text); background:transparent; border:0; border-radius:11px; text-align:left; cursor:pointer; }
+.notification-item:hover,.notification-item.unread { background:var(--surface-2); }
+.notification-icon { display:grid; place-items:center; flex:0 0 auto; width:30px; height:30px; color:#fff; background:linear-gradient(135deg,#ff4d68,#ffb21c); border-radius:10px; }
+.notification-item strong,.notification-item small,.notification-item time { display:block; }.notification-item small { margin-top:2px; color:var(--muted); }.notification-item time { margin-top:5px; color:var(--muted-2); font-size:10px; }.notification-empty { padding:28px 12px; color:var(--muted); text-align:center; font-size:13px; }
+.stories-bar { display:flex; gap:12px; overflow-x:auto; padding:4px 2px 14px; scrollbar-width:none; }.stories-bar::-webkit-scrollbar { display:none; }.story-trigger { display:grid; justify-items:center; gap:5px; min-width:66px; color:var(--muted); background:transparent; border:0; cursor:pointer; font-size:11px; }.story-ring { display:grid; place-items:center; width:58px; height:58px; padding:3px; background:linear-gradient(135deg,#ff4d68,#ffb21c,#9d5cff); border-radius:50%; }.story-ring img,.story-ring span { display:grid; place-items:center; width:100%; height:100%; color:var(--text); background:var(--surface-2); border-radius:50%; object-fit:cover; }.story-plus { font-size:24px; }.story-viewer { position:fixed; z-index:60; inset:0; display:none; place-items:center; padding:20px; background:rgba(0,0,0,.88); }.story-viewer.open { display:grid; }.story-viewer img { max-width:min(92vw,520px); max-height:82vh; border-radius:18px; object-fit:contain; }.story-viewer button { position:absolute; top:20px; right:20px; width:42px; padding:0; color:#fff; background:#ffffff22; border:1px solid #ffffff55; }
+.avatar-upload input[type=file] { min-height:auto; padding:8px 0; border:0; background:transparent; }.privacy-choice { display:flex; align-items:center; gap:10px; padding:12px; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; }.privacy-choice input { width:18px; min-height:18px; accent-color:#ff5b68; }.password-meter { height:7px; margin-top:-7px; margin-bottom:14px; overflow:hidden; background:var(--surface-3); border-radius:99px; }.password-meter i { display:block; width:0; height:100%; background:#f3425f; transition:width .2s,background .2s; }
+</style><script src="/theme.js"></script></head>
 <body>
   <main class="app app--auth">
     <section class="auth-card" aria-labelledby="page-title">
-      <div class="auth-top"><div class="brand"><span class="brand-mark">🔥</span>StreakUp</div><p>Conecte-se, evolua e mantenha sua sequência.</p></div>
+      <div class="auth-top"><div class="brand"><span class="brand-mark"><img class="brand-logo" src="/streakup-logo.png" alt=""></span><span class="brand-text">StreakUp</span></div><p>Conecte-se, evolua e mantenha sua sequência.</p></div>
       <div class="eyebrow">Comece agora</div><h1 id="page-title" style="margin: 6px 0 22px">Criar conta</h1>
       <form id="registerForm">
         <div class="field"><label for="name">Nome</label><input id="name" type="text" placeholder="Como devemos chamar você?" autocomplete="name" required></div>
         <div class="field"><label for="email">E-mail</label><input id="email" type="email" placeholder="voce@email.com" autocomplete="email" required></div>
-        <div class="field"><label for="password">Senha</label><input id="password" type="password" placeholder="Crie uma senha segura" autocomplete="new-password" required></div>
+        <div class="field"><label for="password">Senha</label><small class="helper">Mínimo de 10 caracteres, com maiúscula, minúscula, número e símbolo.</small><input id="password" type="password" minlength="10" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}" placeholder="Crie uma senha segura" autocomplete="new-password" required></div>
         <button id="submitButton" type="submit">Criar minha conta <span aria-hidden="true">→</span></button>
       </form>
       <div id="status" role="status" aria-live="polite"></div>

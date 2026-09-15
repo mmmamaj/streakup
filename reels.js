@@ -43,6 +43,33 @@ async function loadFeed() {
   }
 }
 
+async function searchGlobal(query) {
+  const box = document.getElementById("searchResults"); if (!box) return;
+  if (!query || query.length < 2) { box.hidden = true; box.innerHTML = ""; return; }
+  try {
+    const response = await fetch(`/api/social?type=search&q=${encodeURIComponent(query)}&me=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
+    const data = await response.json(); if (!response.ok) throw Error();
+    box.hidden = false;
+    const users = (data.users || []).map((person) => `<button class="search-result-row" data-profile-search="${esc(person.username)}">${avatarHtml(person.name, person.avatarUrl)}<span><strong>${esc(person.name)}</strong><small>@${esc(person.username)} · perfil</small></span></button>`).join("");
+    const posts = (data.posts || []).map((post) => `<button class="search-result-row" data-post-search="${esc(post.id)}"><video class="search-video" src="${esc(post.mediaUrl)}" muted></video><span><strong>${esc(post.authorName)}</strong><small>${esc(post.text || "Vídeo")}</small></span></button>`).join("");
+    box.innerHTML = `<h3>Usuários</h3>${users || `<div class="search-empty">Nenhum usuário encontrado.</div>`}<h3>Vídeos</h3>${posts || `<div class="search-empty">Nenhum vídeo encontrado.</div>`}`;
+  } catch { box.hidden = false; box.innerHTML = `<div class="search-empty">Busca indisponível agora.</div>`; }
+}
+document.getElementById("globalSearchForm")?.addEventListener("submit", (event) => { event.preventDefault(); searchGlobal(document.getElementById("globalSearchInput").value.trim()); });
+document.getElementById("globalSearchInput")?.addEventListener("input", (event) => searchGlobal(event.target.value.trim()));
+document.getElementById("searchResults")?.addEventListener("click", (event) => { const profile = event.target.closest("[data-profile-search]"); if (profile) window.location.href = `/perfil?u=${encodeURIComponent(profile.dataset.profileSearch)}`; const post = event.target.closest("[data-post-search]"); if (post) document.querySelector(`[data-id="${CSS.escape(post.dataset.postSearch)}"]`)?.scrollIntoView({ behavior: "smooth" }); });
+
+async function loadRecommendations() {
+  const list = document.getElementById("recommendationList"); if (!list) return;
+  try {
+    const response = await fetch(`/api/social?type=recommendations&me=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
+    const data = await response.json(); if (!response.ok) throw Error();
+    list.innerHTML = (data.users || []).map((person) => `<div class="recommendation">${avatarHtml(person.name, person.avatarUrl)}<span class="recommendation-copy"><strong>${esc(person.name)}</strong><small>@${esc(person.username)}</small></span><button type="button" data-recommend-follow="${esc(person.email)}">Seguir</button></div>`).join("") || `<div class="recommendation-empty">Você já conhece todo mundo por aqui.</div>`;
+  } catch { list.innerHTML = `<div class="recommendation-empty">Recomendações indisponíveis agora.</div>`; }
+}
+document.getElementById("recommendationList")?.addEventListener("click", async (event) => { const button = event.target.closest("[data-recommend-follow]"); if (!button) return; button.disabled = true; const response = await fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "follow", me: currentEmail, target: button.dataset.recommendFollow, following: true }) }); if (response.ok) { button.textContent = "Seguindo"; loadRecommendations(); } else button.disabled = false; });
+document.getElementById("refreshRecommendations")?.addEventListener("click", loadRecommendations);
+
 async function loadProfile() {
   const params = new URLSearchParams(location.search);
   const target = params.get("u") || currentEmail;
@@ -84,6 +111,7 @@ async function toggleFollow(target, button) {
     if (!response.ok) throw Error();
     button.textContent = following ? "Seguindo" : "Seguir";
     await loadProfile();
+loadRecommendations();
   } catch { postStatus.textContent = "Não foi possível atualizar o seguindo."; }
   finally { button.disabled = false; }
 }
@@ -154,3 +182,37 @@ document.getElementById("followingTab")?.addEventListener("click", (event) => { 
 document.querySelector(".feed-switch a.active")?.addEventListener("click", (event) => { if (event.currentTarget.id === "followingTab") return; event.preventDefault(); feedType = "feed"; document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id !== "followingTab")); loadFeed(); });
 loadFeed();
 loadProfile();
+
+async function uploadStoryImage(file) {
+  if (!file || !file.type.startsWith("image/")) throw Error("Escolha uma imagem para o story.");
+  if (file.size > 8 * 1024 * 1024) throw Error("A imagem deve ter até 8 MB.");
+  const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(Error("Não foi possível ler a imagem.")); reader.readAsDataURL(file); });
+  const uploadResponse = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl, filename: file.name }) });
+  const upload = await uploadResponse.json();
+  if (!uploadResponse.ok) throw Error(upload.error || "Falha no upload da imagem.");
+  return { url: upload.url, type: file.type };
+}
+function storyAvatar(story) { return story.mediaUrl ? `<img src="${esc(story.mediaUrl)}" alt="">` : `<span>${esc((story.authorName || "U").charAt(0).toUpperCase())}</span>`; }
+async function loadStories() {
+  const bar = document.getElementById("storiesBar"); if (!bar) return;
+  try {
+    const response = await fetch(`/api/stories?me=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
+    const data = await response.json(); if (!response.ok) throw Error();
+    const grouped = [...new Map((data.stories || []).map((story) => [story.authorEmail, story])).values()];
+    bar.innerHTML = `<button class="story-trigger" id="newStoryButton" type="button"><span class="story-ring"><span class="story-plus">＋</span></span><span>Seu story</span></button>${grouped.map((story) => `<button class="story-trigger" data-story-url="${esc(story.mediaUrl)}" type="button"><span class="story-ring">${storyAvatar(story)}</span><span>${esc(story.authorName || story.authorUsername)}</span></button>`).join("")}`;
+  } catch { bar.innerHTML = `<button class="story-trigger" id="newStoryButton" type="button"><span class="story-ring"><span class="story-plus">＋</span></span><span>Seu story</span></button>`; }
+}
+async function createStory(file) {
+  const media = await uploadStoryImage(file);
+  const response = await fetch("/api/stories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ me: currentEmail, authorName: user.name, authorUsername: user.username || currentEmail.split("@")[0], mediaUrl: media.url, mediaType: media.type }) });
+  const data = await response.json(); if (!response.ok) throw Error(data.error || "Não foi possível publicar o story.");
+  loadStories();
+}
+const storiesBar = document.getElementById("storiesBar");
+storiesBar?.addEventListener("click", async (event) => {
+  const trigger = event.target.closest("#newStoryButton");
+  if (trigger) { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = async () => { try { await createStory(input.files?.[0]); } catch (error) { alert(error.message); } }; input.click(); return; }
+  const story = event.target.closest("[data-story-url]"); if (story) { document.getElementById("storyImage").src = story.dataset.storyUrl; document.getElementById("storyViewer").classList.add("open"); }
+});
+document.getElementById("closeStory")?.addEventListener("click", () => document.getElementById("storyViewer")?.classList.remove("open"));
+loadStories();

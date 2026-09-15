@@ -6,6 +6,7 @@ const currentEmail = String(user?.email || "").trim().toLowerCase();
 let directory = [];
 let contacts = [];
 let activeContact = null;
+const nicknames = JSON.parse(localStorage.getItem("streakup_nicknames") || "{}");
 
 const list = document.getElementById("conversationList");
 const messages = document.getElementById("messages");
@@ -32,7 +33,7 @@ function renderDirectory() {
     list.innerHTML = `<div class="empty"><strong>Ninguém encontrado</strong><p style="margin-top:6px">Pesquise pelo e-mail ou nome de usuário.</p></div>`;
     return;
   }
-  list.innerHTML = `<div class="directory-label">Pessoas da rede</div>${candidates.map((contact) => `<button class="conversation ${activeContact?.email === contact.email ? "active" : ""}" data-contact="${escapeHtml(contact.email)}">${avatar(contact)}<span class="conversation-copy"><strong>${escapeHtml(contact.name)}</strong><small>@${escapeHtml(contact.username)} · ${escapeHtml(contact.email)}</small></span><i class="online-dot offline"></i></button>`).join("")}`;
+  list.innerHTML = `<div class="directory-label">Pessoas da rede</div>${candidates.map((contact) => `<button class="conversation ${activeContact?.email === contact.email ? "active" : ""}" data-contact="${escapeHtml(contact.email)}">${avatar(contact)}<span class="conversation-copy"><strong>${escapeHtml(contact.name)}</strong><small>@${escapeHtml(contact.username)} · ${contact.canMessage ? "pode receber mensagens" : "siga você para liberar mensagem"}</small></span><i class="online-dot offline"></i></button>`).join("")}`;
 }
 
 function renderContacts() {
@@ -47,12 +48,17 @@ function renderContacts() {
 
 function selectContact(contact) {
   activeContact = contact;
-  chatTitle.textContent = contact.name;
+  document.querySelector(".chat-list")?.classList.add("chat-mobile-hidden");
+  document.querySelector(".chat-window")?.classList.remove("chat-mobile-hidden");
+  chatTitle.textContent = nicknames[contact.email] || contact.name;
   chatHandle.textContent = `@${contact.username} · conversa persistente`;
   chatAvatar.textContent = contact.avatarUrl ? "" : (contact.name || "U").charAt(0).toUpperCase();
   chatAvatar.style.backgroundImage = contact.avatarUrl ? `url(${contact.avatarUrl})` : "";
   chatAvatar.style.backgroundSize = "cover";
   chatAvatar.style.backgroundPosition = "center";
+  document.getElementById("chatProfileLink").hidden = false;
+  document.getElementById("chatProfileLink").href = `/perfil?u=${encodeURIComponent(contact.username)}`;
+  document.getElementById("renameChat").hidden = false;
   renderContacts();
   loadMessages();
 }
@@ -107,6 +113,7 @@ list.addEventListener("click", (event) => {
   const button = event.target.closest("[data-contact]");
   if (!button) return;
   const contact = directory.find((item) => item.email === button.dataset.contact);
+  if (contact && contact.canMessage === false) { contactStatus.textContent = "Essa pessoa precisa seguir você antes de receber mensagens."; return; }
   if (contact) selectContact(contact);
 });
 
@@ -125,6 +132,8 @@ messageForm.addEventListener("submit", async (event) => {
   finally { button.disabled = false; }
 });
 
+document.getElementById("backToChats")?.addEventListener("click", () => { document.querySelector(".chat-window")?.classList.add("chat-mobile-hidden"); document.querySelector(".chat-list")?.classList.remove("chat-mobile-hidden"); });
+document.getElementById("renameChat")?.addEventListener("click", () => { if (!activeContact) return; const value = prompt("Apelido desta conversa", nicknames[activeContact.email] || activeContact.name); if (value && value.trim()) { nicknames[activeContact.email] = value.trim().slice(0, 40); localStorage.setItem("streakup_nicknames", JSON.stringify(nicknames)); chatTitle.textContent = nicknames[activeContact.email]; renderContacts(); } });
 document.getElementById("logoutButton").addEventListener("click", () => { localStorage.removeItem("streakup_user"); window.location.replace("/login"); });
 document.getElementById("myAvatar").textContent = (user?.name || "V").charAt(0).toUpperCase();
 loadDirectory();

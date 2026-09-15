@@ -1,5 +1,5 @@
 const CACHE_NAME = "streakup-v4-online";
-const APP_SHELL = ["/", "/index.html", "/login.html", "/perfil.html", "/chat.html", "/configuracoes.html", "/script.js", "/login.js", "/reels.js", "/chat.js", "/settings.js", "/manifest.json", "/icon.svg"];
+const APP_SHELL = ["/", "/index.html", "/login.html", "/perfil.html", "/chat.html", "/configuracoes.html", "/script.js", "/theme.js", "/notifications.js", "/streakup-logo.png", "/login.js", "/reels.js", "/chat.js", "/settings.js", "/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
