@@ -25,9 +25,14 @@
       const { publicKey } = keyData;
       if (!publicKey) { console.warn('RiseUp Push: VAPID_PUBLIC_KEY vazia.'); return false; }
       let subscription = await reg.pushManager.getSubscription();
-      if (!subscription) subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(publicKey) });
+      try {
+        if (!subscription) subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(publicKey) });
+      } catch (firstError) {
+        try { await subscription?.unsubscribe(); } catch {}
+        subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(publicKey) });
+      }
       const saved = await fetch('/api/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'subscribe', email, subscription: subscription.toJSON() }) });
-      if (!saved.ok) { const data = await saved.json().catch(() => ({})); console.warn('RiseUp Push: assinatura não foi salva.', data.error || saved.status); return false; }
+      if (!saved.ok) { const data = await saved.json().catch(() => ({})); console.error('RiseUp Push: assinatura não foi salva.', data.error || saved.status); return false; }
       localStorage.setItem(key, '1');
       return true;
     } catch (error) {
@@ -39,7 +44,7 @@
     if (Notification.permission === 'granted') return subscribe();
     if (Notification.permission === 'denied') return false;
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') return subscribe();
+    if (permission === 'granted') { const ok=await subscribe(); if(ok) showLocal('RiseUp','Notificações ativadas com sucesso.'); return ok; }
     return false;
   }
   function showLocal(title, body, icon) {

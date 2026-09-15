@@ -7,13 +7,15 @@ const postForm = document.getElementById("postForm");
 const mediaInput = document.getElementById("postMedia");
 const mediaPreview = document.getElementById("mediaPreview");
 const postStatus = document.getElementById("postStatus");
+const postModal = document.getElementById("postComposer");
+const postMediaStage = document.getElementById("postMediaStage");
+const postMediaEmpty = document.getElementById("postMediaEmpty");
+const photoEditPanel = document.getElementById("photoEditPanel");
+let selectedFilter = "none";
+let photoRotation = 0;
+let photoOverlayText = "";
 const currentEmail = String(user?.email || "").trim().toLowerCase();
 const viewingProfile = new URLSearchParams(location.search).has("u");
-if (viewingProfile) {
-  document.getElementById("postComposer").hidden = true;
-  document.getElementById("recommendations").hidden = true;
-  document.getElementById("storiesBar").hidden = true;
-}
 const esc = (value) => String(value || "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
 const avatarHtml = (name, image, className = "avatar") => image ? `<div class="${className}" style="background-image:url('${esc(image)}');background-size:cover;background-position:center"></div>` : `<div class="${className}">${esc((name || "U").charAt(0).toUpperCase())}</div>`;
 let posts = [];
@@ -186,40 +188,63 @@ loadRecommendations();
 async function publishVideo(file, text) {
   if (!file || !["video/","image/"].some((x) => file.type.startsWith(x))) throw Error("Escolha uma foto ou vídeo.");
   if (file.size > 50 * 1024 * 1024) throw Error("O arquivo deve ter até 50 MB.");
-  const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(Error("Não foi possível ler o vídeo.")); reader.readAsDataURL(file); });
-  const uploadResponse = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl, filename: file.name }) });
+  let uploadFile = file;
+  if (file.type.startsWith("image/") && (selectedFilter !== "none" || photoRotation % 360 !== 0 || photoOverlayText)) {
+    uploadFile = await editImageFile(file);
+  }
+  const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(Error("Não foi possível ler o arquivo.")); reader.readAsDataURL(uploadFile); });
+  const uploadResponse = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl, filename: uploadFile.name }) });
   const upload = await uploadResponse.json();
-  if (!uploadResponse.ok) throw Error(upload.error || "Falha no upload do vídeo.");
+  if (!uploadResponse.ok) throw Error(upload.error || "Falha no upload do arquivo.");
   const response = await fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "post", me: currentEmail, authorName: user.name, authorUsername: user.username || currentEmail.split("@")[0], authorAvatar: user.avatarUrl || "", text, mentions: document.getElementById("postMentions")?.value.trim() || "", mediaUrl: upload.url, mediaType: file.type.startsWith("image/") ? "image" : "video" }) });
   const data = await response.json();
-  if (!response.ok) throw Error(data.error || "Não foi possível publicar o vídeo.");
+  if (!response.ok) throw Error(data.error || "Não foi possível publicar.");
+  return data;
+}
+function editImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); img.onload = () => {
+      const swap = photoRotation % 180 !== 0, w = swap ? img.height : img.width, h = swap ? img.width : img.height;
+      const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; const ctx = canvas.getContext("2d");
+      ctx.translate(w / 2, h / 2); ctx.rotate(photoRotation * Math.PI / 180);
+      const filters = { none:"none", contrast:"contrast(1.14) saturate(1.08)", warm:"sepia(.18) saturate(1.2) contrast(1.04)", mono:"grayscale(1) contrast(1.08)" };
+      ctx.filter = filters[selectedFilter] || "none"; ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      if (photoOverlayText.trim()) { ctx.filter="none"; const size=Math.max(24,Math.round(Math.min(w,h)*.075)); ctx.font=`700 ${size}px DM Sans, Arial`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.lineWidth=Math.max(4,size*.12); ctx.strokeStyle="rgba(0,0,0,.72)"; ctx.fillStyle="#fff"; ctx.strokeText(photoOverlayText.trim(),0,h*.78); ctx.fillText(photoOverlayText.trim(),0,h*.78); }
+      canvas.toBlob(blob => blob ? resolve(new File([blob], file.name.replace(/\.[^.]+$/, "") + "-edit.jpg", {type:"image/jpeg"})) : reject(Error("Não foi possível editar a imagem.")), "image/jpeg", .92);
+    }; img.onerror=()=>reject(Error("Não foi possível abrir a imagem.")); img.src=URL.createObjectURL(file);
+  });
 }
 
-mediaInput?.addEventListener("change", () => {
-  const file = mediaInput.files?.[0];
-  if (!file) { mediaPreview.innerHTML = ""; return; }
-  mediaPreview.innerHTML = `<video class="composer-media" controls src="${URL.createObjectURL(file)}"></video><small class="muted">${esc(file.name)}</small>`;
-});
+function updatePostPreview(file) {
+  if (!mediaPreview || !postMediaEmpty) return;
+  if (!file) { mediaPreview.innerHTML = ""; postMediaEmpty.hidden = false; return; }
+  postMediaEmpty.hidden = true;
+  const url = URL.createObjectURL(file);
+  mediaPreview.innerHTML = file.type.startsWith("image/") ? `<img class="composer-media post-preview-media" src="${url}" alt="Prévia da publicação">` : `<video class="composer-media post-preview-media" controls playsinline src="${url}"></video>`;
+}
+mediaInput?.addEventListener("change", () => updatePostPreview(mediaInput.files?.[0]));
+postMediaStage?.addEventListener("click", () => { if (!mediaInput?.files?.length) mediaInput?.click(); });
 postForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const file = mediaInput?.files?.[0];
-  const text = document.getElementById("postText").value.trim();
-  const button = postForm.querySelector("button[type=submit]");
-  postStatus.className = "";
-  postStatus.textContent = "Publicando...";
-  button.disabled = true;
+  const file = mediaInput?.files?.[0]; const text = document.getElementById("postText").value.trim(); const button = postForm.querySelector("button[type=submit]");
+  if (!file) { postStatus.textContent = "Escolha uma foto ou vídeo primeiro."; postStatus.className="error"; return; }
+  postStatus.className = ""; postStatus.textContent = "Publicando..."; button.disabled = true;
   try {
-    await publishVideo(file, text);
-    postForm.reset();
-    mediaPreview.innerHTML = "";
-    postStatus.className = "success";
-    postStatus.textContent = "Vídeo publicado com sucesso.";
-    feedType = "feed";
-    document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id !== "followingTab"));
-    await loadFeed();
+    await publishVideo(file, text); postForm.reset(); updatePostPreview(null); selectedFilter="none"; photoRotation=0; photoOverlayText=""; if(photoEditPanel)photoEditPanel.hidden=true; if(postModal){postModal.classList.remove("show");setTimeout(()=>postModal.hidden=true,220);} postStatus.textContent="";
+    feedType = "feed"; document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id !== "followingTab")); await loadFeed();
   } catch (error) { postStatus.className = "error"; postStatus.textContent = error.message || "Não foi possível publicar."; }
   finally { button.disabled = false; }
 });
+function openPostComposer(){ if(!postModal)return; postModal.hidden=false; requestAnimationFrame(()=>postModal.classList.add("show")); document.body.classList.add("modal-open"); setTimeout(()=>mediaInput?.focus(),120); }
+function closePostComposer(){ if(!postModal)return; postModal.classList.remove("show");document.body.classList.remove("modal-open");setTimeout(()=>{postModal.hidden=true;postForm?.reset();updatePostPreview(null);if(photoEditPanel)photoEditPanel.hidden=true;postStatus.textContent="";},220); }
+document.querySelectorAll("[data-close-post]").forEach(el=>el.addEventListener("click",closePostComposer));
+document.getElementById("postToggle")?.addEventListener("click",e=>{e.preventDefault();openPostComposer();});
+document.getElementById("editPhotoButton")?.addEventListener("click",()=>{if(!mediaInput?.files?.[0]){mediaInput?.click();return;}photoEditPanel.hidden=!photoEditPanel.hidden;});
+document.getElementById("addTextButton")?.addEventListener("click",()=>{if(!mediaInput?.files?.[0]){mediaInput?.click();return;}photoEditPanel.hidden=false;document.getElementById("overlayText")?.focus();});
+document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{selectedFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));}));
+document.getElementById("rotatePhoto")?.addEventListener("click",()=>{photoRotation=(photoRotation+90)%360;});
+document.getElementById("applyPhotoEdit")?.addEventListener("click",()=>{photoOverlayText=document.getElementById("overlayText")?.value||"";postStatus.textContent="Edição aplicada na publicação.";postStatus.className="success";setTimeout(()=>{if(postStatus)postStatus.textContent=""},1400);});
+window.addEventListener("keydown",e=>{if(e.key==="Escape"&&postModal?.classList.contains("show"))closePostComposer();});
 
 async function openComments(postId){
   const sheet=document.getElementById("commentSheet"); if(!sheet)return;
@@ -242,7 +267,7 @@ async function openComments(postId){
 
 feed.addEventListener("click", async (event) => {
   const emptyPost = event.target.closest("#emptyPostButton");
-  if (emptyPost) { postForm?.scrollIntoView({ behavior: "smooth", block: "center" }); document.getElementById("postMedia")?.focus(); return; }
+  if (emptyPost) { openPostComposer(); return; }
   if (event.target.closest("#retryFeed")) { loadFeed(); return; }
   const button = event.target.closest("[data-action]");
   const card = event.target.closest("[data-id]");
@@ -263,45 +288,31 @@ feed.addEventListener("click", async (event) => {
   fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interaction", me: currentEmail, postId: id, kind, active: current[kind] }) }).catch(() => {});
 });
 
+function showOwnProfile(){
+  history.pushState({profile:true}, "", "/perfil#profile");
+  profilePanel.classList.add("open");
+  document.getElementById("reelsFeed").hidden=true; document.getElementById("storiesBar").hidden=true; document.getElementById("recommendations").hidden=true; document.getElementById("globalSearchForm").hidden=true; document.querySelector(".feed-switch").hidden=true;
+  loadProfile();
+}
+function showFeed(){
+  if(postModal?.classList.contains("show")) closePostComposer();
+  history.pushState({}, "", "/perfil"); profilePanel.classList.remove("open"); document.getElementById("reelsFeed").hidden=false; document.getElementById("storiesBar").hidden=false; document.getElementById("recommendations").hidden=false; document.getElementById("globalSearchForm").hidden=false; document.querySelector(".feed-switch").hidden=false; feedType="feed"; document.querySelectorAll(".feed-switch a").forEach(x=>x.classList.toggle("active",x.id!=="followingTab")); loadFeed();
+}
 function updatePostNavVisibility(){
   const plus=document.getElementById('postToggle');
   if(!plus)return;
   const params=new URLSearchParams(location.search);
-  const isForYou=!params.has('u') && (location.hash==='' || location.hash==='#foryou');
+  const isForYou=!params.has('u') && location.hash!=='#profile';
   plus.classList.toggle('is-hidden',!isForYou);
 }
 updatePostNavVisibility();
 window.addEventListener('hashchange',updatePostNavVisibility);
-document.getElementById("profileToggle")?.addEventListener("click", (event) => {
-  event.preventDefault();
-  history.pushState({}, "", "/perfil");
-  profilePanel.classList.add("open");
-  loadProfile();
-  profilePanel.scrollIntoView({ behavior: "smooth", block: "start" });
-});
-window.addEventListener("popstate", () => {
-  if (new URLSearchParams(location.search).has("u")) {
-    profilePanel.classList.add("open");
-    loadProfile();
-  } else {
-    profilePanel.classList.remove("open");
-    document.getElementById("postComposer").hidden = false;
-    document.getElementById("recommendations").hidden = false;
-    document.getElementById("storiesBar").hidden = false;
-    loadFeed();
-  }
-});
-document.getElementById("postToggle")?.addEventListener("click", (event) => { if (new URLSearchParams(location.search).has("u")) { event.preventDefault(); window.location.href = "/perfil#postComposer"; return; } event.preventDefault(); postForm?.scrollIntoView({ behavior: "smooth", block: "center" }); });
-document.getElementById("searchNav")?.addEventListener("click", () => setTimeout(() => document.getElementById("globalSearchInput")?.focus(), 100));
-document.getElementById("profileEditButton")?.addEventListener("click", () => { window.location.href = "/configuracoes"; });
-document.getElementById("shareProfile")?.addEventListener("click", async () => { const url = location.href; try { await navigator.clipboard?.writeText(url); alert("Link do perfil copiado."); } catch { /* compartilhamento cancelado */ } });
-document.getElementById("storyFromProfile")?.addEventListener("click", () => document.getElementById("newStoryButton")?.click());
-document.getElementById("newHighlight")?.addEventListener("click", () => document.getElementById("newStoryButton")?.click());
-document.getElementById("followingTab")?.addEventListener("click", (event) => { event.preventDefault(); feedType = "following"; document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id === "followingTab")); loadFeed(); });
-document.querySelector(".feed-switch a.active")?.addEventListener("click", (event) => { if (event.currentTarget.id === "followingTab") return; event.preventDefault(); feedType = "feed"; document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id !== "followingTab")); loadFeed(); });
-loadFeed();
-loadProfile();
-if (location.hash === "#searchResults") setTimeout(() => document.getElementById("globalSearchInput")?.focus(), 150);
+document.getElementById("profileToggle")?.addEventListener("click", (event) => { event.preventDefault(); showOwnProfile(); });
+document.getElementById("profileClose")?.addEventListener("click", showFeed);
+document.querySelector('[data-nav="foryou"]')?.addEventListener("click", event => { if(location.hash==="#profile"){event.preventDefault();showFeed();} });
+document.getElementById("profileMore")?.addEventListener("click",()=>{const m=document.getElementById("profileMenu");if(m)m.hidden=!m.hidden;});
+document.getElementById("profileLogout")?.addEventListener("click",()=>{localStorage.removeItem("riseup_user");window.location.replace("/login")});
+window.addEventListener("popstate", () => { if (new URLSearchParams(location.search).has("u")) { profilePanel.classList.add("open"); document.getElementById("reelsFeed").hidden=true; document.getElementById("storiesBar").hidden=true; document.getElementById("recommendations").hidden=true; loadProfile(); } else if(location.hash==="#profile"){ showOwnProfile(); } else { showFeed(); } });
 
 async function uploadStoryImage(file) {
   if (!file || !file.type.startsWith("image/")) throw Error("Escolha uma imagem para o story.");
@@ -365,6 +376,7 @@ document.getElementById("storyPrev")?.addEventListener("click",()=>showStoryAt(s
 
 loadStories();
 }
+if (location.hash === "#profile") setTimeout(showOwnProfile, 80);
 let storyQueue=[]; let storyIndex=0; let storyTimer=null; let allStories=[];
 function closeStoryViewer(){clearTimeout(storyTimer);document.getElementById("storyViewer")?.classList.remove("open");}
 function showStoryAt(index){ if(!storyQueue.length)return closeStoryViewer(); if(index>=storyQueue.length)return closeStoryViewer(); storyIndex=index; const story=storyQueue[index]; document.getElementById("storyImage").src=story.mediaUrl; document.getElementById("storyCaption").textContent=story.text||""; document.getElementById("storyViewer").classList.add("open"); const progress=document.getElementById('storyProgress'); if(progress){progress.style.transition='none';progress.style.width='0%';requestAnimationFrame(()=>{progress.style.transition='width 5s linear';progress.style.width='100%';});} clearTimeout(storyTimer);storyTimer=setTimeout(()=>showStoryAt(index+1),5000);}
