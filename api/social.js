@@ -1,30 +1,165 @@
-const API_BASE=process.env.DATABASE_API_BASE_URL||"https://project--457ce288-fa2b-4352-8338-3bf307534ab0.lovable.app/api/public/v1";const apiKey=()=>process.env.DATABASE_API_KEY;const norm=v=>String(v||"").trim().toLowerCase().replace(/^@/,"");const safe=v=>String(v||"").trim();
-async function db(path,options={}){return fetch(`${API_BASE}${path}`,{...options,headers:{Authorization:`Bearer ${apiKey()}`,Accept:'application/json',...(options.headers||{})}})}
-async function allRecords(){const r=await db('/records?limite=2000'),p=await r.json();if(!r.ok)throw Error(p.error||'Não foi possível ler a database.');return p.registros||[]}
-async function getRecord(key){const r=await db(`/records/${encodeURIComponent(key)}`);if(r.status===404)return null;if(!r.ok)throw Error('Não foi possível ler o registro.');const p=await r.json();return p.registro||null}
-async function putRecord(key,tipo,data){const r=await db(`/records/${encodeURIComponent(key)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo,data})});if(!r.ok)throw Error('Não foi possível salvar na database.');return r.json()}
-async function deleteRecord(key){return db(`/records/${encodeURIComponent(key)}`,{method:'DELETE'})}
-function isFollowing(records,a,b){a=norm(a);b=norm(b);return records.some(r=>r.tipo==='follow'&&norm(r.data?.follower)===a&&(norm(r.data?.following)===b||norm(r.data?.followingUsername)===b))}
-function profileFromRecords(records,target){const wanted=norm(target);const login=records.filter(r=>r.tipo==='login').find(r=>{const d=r.data||{};return[d.email,d.usuario,d.username,r.chave?.replace(/^login_/,'')].some(v=>norm(v)===wanted)});const loginEmail=norm(login?.data?.email||login?.data?.usuario);const profile=records.filter(r=>r.tipo==='profile').find(r=>{const d=r.data||{};return(loginEmail&&norm(d.email)===loginEmail)||[d.email,d.username,r.chave?.replace(/^profile_/,'')].some(v=>norm(v)===wanted)});const record=profile||login;if(!record)return null;const d={...(login?.data||{}),...(profile?.data||{})};const email=norm(d.email||d.usuario||record.chave?.replace(/^profile_/,'').replace(/^login_/,''));return{email,name:safe(d.name||d.nome)||'Usuário',username:safe(d.username||email.split('@')[0])||'usuario',avatarUrl:safe(d.avatarUrl),bio:safe(d.bio),publicProfile:d.publicProfile!==false,language:safe(d.language)||'pt-BR',productivityLevel:safe(d.productivityLevel)||'flex',dailyVideoLimitMinutes:Number(d.dailyVideoLimitMinutes)||60,videoUntil:/^\d{2}:\d{2}$/.test(d.videoUntil||'')?d.videoUntil:'22:00',interests:Array.isArray(d.interests)?d.interests:[]}}
-function commentsFor(records,id){return records.filter(r=>r.tipo==='comment'&&safe(r.data?.postId)===id).map(r=>({id:r.chave,...r.data})).sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)))}
-function postFromRecord(record,records){const b=record.data||{},id=record.chave;return{id,...b,likes:Number(b.likes||0)+records.filter(r=>r.tipo==='like'&&r.data?.postId===id).length,reposts:Number(b.reposts||0)+records.filter(r=>r.tipo==='repost'&&r.data?.postId===id).length,views:Number(b.views||0),comments:commentsFor(records,id).slice(-20)}}
-function notifyKey(to,kind,source,objectId){return`notification_${norm(to)}__${kind}__${norm(source)}__${safe(objectId)}`}
-async function createNotification(to,kind,source,sourceName,objectId,text){const recipient=norm(to);if(!recipient||recipient===norm(source))return;await putRecord(notifyKey(recipient,kind,source,objectId),'notification',{to:recipient,kind,source:norm(source),sourceName:safe(sourceName)||'Alguém',objectId:safe(objectId),text:safe(text),createdAt:new Date().toISOString(),read:false})}
-function sortNewest(a){return a.sort((x,y)=>String(y.createdAt||'').localeCompare(String(x.createdAt||'')))}
-function brazilDateKey(date=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(date)}
-function brazilMinutes(date=new Date()){const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(date);return Number(p.find(x=>x.type==='hour')?.value||0)*60+Number(p.find(x=>x.type==='minute')?.value||0)}
-function usageFor(records,email){const key=`usage_${norm(email)}_${brazilDateKey()}`;const r=records.find(x=>x.chave===key&&x.tipo==='usage');return{key,minutes:Number(r?.data?.minutes||0)}}
-function usageState(records,profile){const u=usageFor(records,profile.email),now=brazilMinutes(),[h,m]=String(profile.videoUntil||'22:00').split(':').map(Number),until=h*60+m;let reason='';if(now>=until)reason='horario';else if(u.minutes>=profile.dailyVideoLimitMinutes)reason='limite';return{minutes:u.minutes,limit:profile.dailyVideoLimitMinutes,until:profile.videoUntil,blocked:Boolean(reason),reason}}
-export default async function handler(req,res){if(!apiKey())return res.status(500).json({error:'DATABASE_API_KEY não configurada.'});try{const records=await allRecords();if(req.method==='GET'){const type=safe(req.query?.type||'feed'),viewer=norm(req.query?.me||req.query?.viewer);if(type==='feed'||type==='following'){const viewerProfile=profileFromRecords(records,viewer);const usage=viewerProfile?usageState(records,viewerProfile):{blocked:false,minutes:0,limit:60,until:'22:00'};if(usage.blocked)return res.status(200).json({posts:[],restricted:true,usage});const posts=records.filter(r=>r.tipo==='post'&&['video','image'].includes(r.data?.mediaType)).filter(r=>{const author=profileFromRecords(records,r.data?.authorEmail);const visible=!author||author.publicProfile||author.email===viewer||isFollowing(records,viewer,author.email);const followed=isFollowing(records,viewer,r.data?.authorEmail)||isFollowing(records,viewer,r.data?.authorUsername);return visible&&(type==='feed'||followed)}).map(r=>postFromRecord(r,records));return res.status(200).json({posts:sortNewest(posts),restricted:false,usage})}
-if(type==='profile'){const target=req.query?.email||req.query?.username||req.query?.identifier;const profile=profileFromRecords(records,target);if(!profile)return res.status(404).json({error:'Perfil não encontrado.'});const follows=records.filter(r=>r.tipo==='follow'),names=new Set([profile.email,profile.username]);const canView=profile.publicProfile||profile.email===viewer||isFollowing(records,viewer,profile.email);profile.followers=follows.filter(r=>names.has(norm(r.data?.following))||names.has(norm(r.data?.followingUsername))).length;profile.following=follows.filter(r=>names.has(norm(r.data?.follower))||names.has(norm(r.data?.followerUsername))).length;profile.followingMe=isFollowing(records,viewer,profile.email);const posts=canView?sortNewest(records.filter(r=>r.tipo==='post'&&['video','image'].includes(r.data?.mediaType)&&norm(r.data?.authorEmail)===profile.email).map(r=>postFromRecord(r,records))):[];profile.posts=posts.length;return res.status(200).json({profile,posts,canView})}
-if(type==='recommendations'){const users=new Map();records.filter(r=>['login','profile'].includes(r.tipo)).forEach(r=>{const d=r.data||{},email=norm(d.email||d.usuario||r.chave?.replace(/^login_/,'').replace(/^profile_/,''));if(!email||email===viewer)return;const e=users.get(email)||{email,name:'Usuário',username:email.split('@')[0],avatarUrl:'',bio:''};e.name=safe(d.name||d.nome)||e.name;e.username=safe(d.username)||e.username;e.avatarUrl=safe(d.avatarUrl)||e.avatarUrl;e.bio=safe(d.bio)||e.bio;users.set(email,e)});return res.status(200).json({users:[...users.values()].filter(p=>!isFollowing(records,viewer,p.email)).slice(0,8)})}
-if(type==='search'){const q=norm(req.query?.q);if(q.length<2)return res.status(200).json({users:[],posts:[]});const users=records.filter(r=>['login','profile'].includes(r.tipo)).map(r=>profileFromRecords(records,r.data?.email||r.data?.usuario||r.chave)).filter(Boolean).filter((p,i,l)=>l.findIndex(x=>x.email===p.email)===i).filter(p=>[p.name,p.username,p.email].some(v=>norm(v).includes(q))).slice(0,12);const posts=records.filter(r=>r.tipo==='post'&&['video','image'].includes(r.data?.mediaType)&&[r.data?.text,r.data?.authorName,r.data?.authorUsername].some(v=>norm(v).includes(q))).map(r=>postFromRecord(r,records)).slice(0,12);return res.status(200).json({users,posts})}
-if(type==='comments'){const id=safe(req.query?.postId);return res.status(200).json({comments:commentsFor(records,id)})}return res.status(400).json({error:'Tipo de consulta inválido.'})}
-const action=safe(req.body?.action),me=norm(req.body?.me);if(!me)return res.status(400).json({error:'Usuário não informado.'});const actor=profileFromRecords(records,me);
-if(action==='usage'){const minutes=Math.max(0,Math.min(10,Number(req.body?.minutes||0)));if(!minutes)return res.status(200).json({ok:true});const u=usageFor(records,me);await putRecord(u.key,'usage',{email:me,date:brazilDateKey(),minutes:u.minutes+minutes,updatedAt:new Date().toISOString()});return res.status(200).json({minutes:u.minutes+minutes})}
-if(action==='post'){const mediaType=req.body.mediaType==='image'?'image':'video';if(!req.body.mediaUrl)return res.status(400).json({error:'Envie uma mídia.'});const id=`post_${crypto.randomUUID()}`,post={authorEmail:me,authorName:safe(req.body.authorName)||actor?.name||'Usuário',authorUsername:safe(req.body.authorUsername)||actor?.username||me.split('@')[0],authorAvatar:safe(req.body.authorAvatar)||actor?.avatarUrl||'',text:safe(req.body.text),mentions:safe(req.body.mentions),mediaUrl:safe(req.body.mediaUrl),mediaType,createdAt:new Date().toISOString(),likes:0,reposts:0,views:0};await putRecord(id,'post',post);return res.status(201).json({post:{id,...post}})}
-if(action==='comment'){const postId=safe(req.body.postId),text=safe(req.body.text);if(!postId||!text)return res.status(400).json({error:'Comentário inválido.'});const post=records.find(r=>r.chave===postId&&r.tipo==='post');if(!post)return res.status(404).json({error:'Post não encontrado.'});const id=`comment_${crypto.randomUUID()}`,comment={postId,authorEmail:me,authorName:actor?.name||me.split('@')[0],authorUsername:actor?.username||me.split('@')[0],authorAvatar:actor?.avatarUrl||'',text:text.slice(0,500),createdAt:new Date().toISOString()};await putRecord(id,'comment',comment);await createNotification(post.data?.authorEmail,'comment',me,actor?.name,postId,`${actor?.name||'Alguém'} comentou no seu post.`);return res.status(201).json({comment:{id,...comment}})}
-if(action==='follow'){const target=norm(req.body.target);if(!target||target===me)return res.status(400).json({error:'Perfil inválido.'});const targetProfile=profileFromRecords(records,target);if(!targetProfile)return res.status(404).json({error:'Perfil não encontrado.'});const key=`follow_${me}__${targetProfile.email}`,following=Boolean(req.body.following),existing=await getRecord(key);if(following&&!existing){await putRecord(key,'follow',{follower:me,following:targetProfile.email,followingUsername:targetProfile.username,createdAt:new Date().toISOString()});await createNotification(targetProfile.email,'follow',me,actor?.name,key,`${actor?.name||'Alguém'} começou a seguir você.`)}if(!following&&existing)await deleteRecord(key);return res.status(200).json({following})}
-if(action==='interaction'){const postId=safe(req.body.postId),kind=safe(req.body.kind),active=Boolean(req.body.active);if(!postId||!['like','save','repost','view'].includes(kind))return res.status(400).json({error:'Ação inválida.'});if(kind==='view'){const key=`view_${me}__${postId}`,existing=await getRecord(key);if(!existing)await putRecord(key,'view',{user:me,postId,createdAt:new Date().toISOString()});return res.status(200).json({active:true})}const key=`${kind}_${me}__${postId}`,existing=await getRecord(key);if(active&&!existing)await putRecord(key,kind,{user:me,postId,createdAt:new Date().toISOString()});if(!active&&existing)await deleteRecord(key);return res.status(200).json({active})}
-return res.status(405).json({error:'Método não permitido.'})}catch(e){console.error(e);return res.status(500).json({error:e.message||'Erro na rede social.'})}}
-export const config={api:{bodyParser:true}};
+const API_BASE = process.env.DATABASE_API_BASE_URL || "https://project--457ce288-fa2b-4352-8338-3bf307534ab0.lovable.app/api/public/v1";
+const apiKey = () => process.env.DATABASE_API_KEY;
+const norm = (value) => String(value || "").trim().toLowerCase().replace(/^@/, "");
+const safe = (value) => String(value || "").trim();
+
+async function db(path, options = {}) {
+  return fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { Authorization: `Bearer ${apiKey()}`, Accept: "application/json", ...(options.headers || {}) }
+  });
+}
+async function allRecords() {
+  const response = await db("/records?limite=2000");
+  const payload = await response.json();
+  if (!response.ok) throw Error(payload.error || "Não foi possível ler a database.");
+  return payload.registros || [];
+}
+async function getRecord(key) {
+  const response = await db(`/records/${encodeURIComponent(key)}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw Error("Não foi possível ler o registro.");
+  const payload = await response.json();
+  return payload.registro || null;
+}
+async function putRecord(key, tipo, data) {
+  const response = await db(`/records/${encodeURIComponent(key)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tipo, data }) });
+  if (!response.ok) throw Error("Não foi possível salvar na database.");
+  return response.json();
+}
+async function deleteRecord(key) { return db(`/records/${encodeURIComponent(key)}`, { method: "DELETE" }); }
+function isFollowing(records, follower, following) {
+  const a = norm(follower), b = norm(following);
+  return records.some((record) => record.tipo === "follow" && norm(record.data?.follower) === a && (norm(record.data?.following) === b || norm(record.data?.followingUsername) === b));
+}
+function profileFromRecords(records, target) {
+  const wanted = norm(target);
+  const login = records.filter((record) => record.tipo === "login").find((record) => {
+    const data = record.data || {};
+    return [data.email, data.usuario, data.username, record.chave?.replace(/^login_/, "")].some((value) => norm(value) === wanted);
+  });
+  const loginEmail = norm(login?.data?.email || login?.data?.usuario);
+  const profile = records.filter((record) => record.tipo === "profile").find((record) => {
+    const data = record.data || {};
+    return (loginEmail && norm(data.email) === loginEmail) || [data.email, data.username, record.chave?.replace(/^profile_/, "")].some((value) => norm(value) === wanted);
+  });
+  const record = profile || login;
+  if (!record) return null;
+  const data = { ...(login?.data || {}), ...(profile?.data || {}) };
+  const email = norm(data.email || data.usuario || record.chave?.replace(/^profile_/, "").replace(/^login_/, ""));
+  return { email, name: safe(data.name || data.nome) || "Usuário", username: safe(data.username || email.split("@")[0]) || "usuario", avatarUrl: safe(data.avatarUrl), bio: safe(data.bio), publicProfile: data.publicProfile !== false };
+}
+function postFromRecord(record, records) {
+  const base = record.data || {}, id = record.chave;
+  return { id, ...base, likes: Number(base.likes || 0) + records.filter((item) => item.tipo === "like" && item.data?.postId === id).length, reposts: Number(base.reposts || 0) + records.filter((item) => item.tipo === "repost" && item.data?.postId === id).length, views: Number(base.views || 0) };
+}
+function notifyKey(to, kind, source, objectId) { return `notification_${norm(to)}__${kind}__${norm(source)}__${safe(objectId)}`; }
+async function createNotification(to, kind, source, sourceName, objectId, text) {
+  const recipient = norm(to);
+  if (!recipient || recipient === norm(source)) return;
+  await putRecord(notifyKey(recipient, kind, source, objectId), "notification", { to: recipient, kind, source: norm(source), sourceName: safe(sourceName) || "Alguém", objectId: safe(objectId), text: safe(text), createdAt: new Date().toISOString(), read: false });
+}
+function sortNewest(items) { return items.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))); }
+
+export default async function handler(req, res) {
+  if (!apiKey()) return res.status(500).json({ error: "DATABASE_API_KEY não configurada." });
+  try {
+    const records = await allRecords();
+    if (req.method === "GET") {
+      const type = safe(req.query?.type || "feed"), viewer = norm(req.query?.me || req.query?.viewer);
+      if (type === "feed" || type === "following") {
+        const posts = records.filter((record) => record.tipo === "post" && ["video","image"].includes(record.data?.mediaType)).filter((record) => {
+          const author = profileFromRecords(records, record.data?.authorEmail);
+          const visible = !author || author.publicProfile || author.email === viewer || isFollowing(records, viewer, author.email);
+          const followed = isFollowing(records, viewer, record.data?.authorEmail) || isFollowing(records, viewer, record.data?.authorUsername);
+          return visible && (type === "feed" || followed);
+        }).map((record) => postFromRecord(record, records));
+        return res.status(200).json({ posts: sortNewest(posts) });
+      }
+      if (type === "profile") {
+        const profile = profileFromRecords(records, req.query?.identifier || req.query?.username || req.query?.email);
+        if (!profile) return res.status(404).json({ error: "Perfil não encontrado." });
+        const follows = records.filter((record) => record.tipo === "follow");
+        const canView = profile.publicProfile || profile.email === viewer || isFollowing(records, viewer, profile.email);
+        const profileNames = new Set([norm(profile.email), norm(profile.username)]);
+        profile.followers = follows.filter((record) => profileNames.has(norm(record.data?.following)) || profileNames.has(norm(record.data?.followingUsername))).length;
+        profile.following = follows.filter((record) => profileNames.has(norm(record.data?.follower)) || profileNames.has(norm(record.data?.followerUsername))).length;
+        profile.followingMe = isFollowing(records, viewer, profile.email);
+        const posts = canView ? sortNewest(records.filter((record) => record.tipo === "post" && ["video","image"].includes(record.data?.mediaType) && norm(record.data?.authorEmail) === profile.email).map((record) => postFromRecord(record, records))) : [];
+        profile.posts = posts.length;
+        return res.status(200).json({ profile, posts, canView });
+      }
+      if (type === "comments") {
+        const postId = safe(req.query?.postId);
+        if (!postId) return res.status(400).json({ error: "Post não informado." });
+        const comments = sortNewest(records.filter((r) => r.tipo === "comment" && r.data?.postId === postId).map((r) => ({ id:r.chave, ...r.data })));
+        return res.status(200).json({ comments });
+      }
+      if (type === "recommendations") {
+        const users = new Map();
+        records.filter((record) => ["login", "profile"].includes(record.tipo)).forEach((record) => {
+          const data = record.data || {}, email = norm(data.email || data.usuario || record.chave?.replace(/^login_/, "").replace(/^profile_/, ""));
+          if (!email || email === viewer) return;
+          const existing = users.get(email) || { email, name: "Usuário", username: email.split("@")[0], avatarUrl: "", bio: "", createdAt: record.createdAt || "" };
+          existing.name = safe(data.name || data.nome) || existing.name; existing.username = safe(data.username) || existing.username; existing.avatarUrl = safe(data.avatarUrl) || existing.avatarUrl; existing.bio = safe(data.bio) || existing.bio;
+          users.set(email, existing);
+        });
+        const result = [...users.values()].filter((person) => !isFollowing(records, viewer, person.email)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 8);
+        return res.status(200).json({ users: result });
+      }
+      if (type === "search") {
+        const query = norm(req.query?.q);
+        if (query.length < 2) return res.status(200).json({ users: [], posts: [] });
+        const users = records.filter((record) => ["login", "profile"].includes(record.tipo)).map((record) => profileFromRecords(records, record.data?.email || record.data?.usuario || record.chave)).filter(Boolean).filter((profile, index, list) => list.findIndex((item) => item.email === profile.email) === index).filter((profile) => [profile.name, profile.username, profile.email].some((value) => norm(value).includes(query))).slice(0, 12);
+        const posts = records.filter((record) => record.tipo === "post" && ["video","image"].includes(record.data?.mediaType) && [record.data?.text, record.data?.authorName, record.data?.authorUsername].some((value) => norm(value).includes(query))).map((record) => postFromRecord(record, records)).slice(0, 12);
+        return res.status(200).json({ users, posts });
+      }
+      return res.status(400).json({ error: "Tipo de consulta inválido." });
+    }
+    if (req.method === "POST") {
+      const action = safe(req.body?.action), me = norm(req.body?.me);
+      if (!me) return res.status(400).json({ error: "Usuário não informado." });
+      const actor = profileFromRecords(records, me);
+      if (action === "post") {
+        if (!req.body.mediaUrl || !["video","image"].includes(req.body.mediaType)) return res.status(400).json({ error: "Mídia inválida." });
+        const id = `post_${crypto.randomUUID()}`, post = { authorEmail: me, authorName: safe(req.body.authorName) || actor?.name || "Usuário", authorUsername: safe(req.body.authorUsername) || actor?.username || me.split("@")[0], authorAvatar: safe(req.body.authorAvatar), text: safe(req.body.text), mentions: safe(req.body.mentions), mediaUrl: safe(req.body.mediaUrl), mediaType: req.body.mediaType === "image" ? "image" : "video", createdAt: new Date().toISOString(), likes: 0, reposts: 0, views: 0 };
+        await putRecord(id, "post", post);
+        const mentions = [...String(post.mentions || "").matchAll(/@([a-zA-Z0-9_.-]+)/g)].map((match) => match[1].toLowerCase());
+        for (const record of records.filter((item) => ["login", "profile"].includes(item.tipo))) {
+          const mentioned = profileFromRecords(records, record.data?.email || record.data?.usuario || record.chave);
+          if (mentioned && mentions.includes(String(mentioned.username).toLowerCase()) && mentioned.email !== me) await createNotification(mentioned.email, "mention", me, actor?.name, id, `${actor?.name || "Alguém"} marcou você em um vídeo.`);
+        }
+        return res.status(201).json({ post: { id, ...post } });
+      }
+      if (action === "follow") {
+        const target = norm(req.body.target); if (!target || target === me) return res.status(400).json({ error: "Perfil inválido." });
+        const targetProfile = profileFromRecords(records, target); if (!targetProfile) return res.status(404).json({ error: "Perfil não encontrado." });
+        const key = `follow_${me}__${targetProfile.email}`, following = Boolean(req.body.following), existing = await getRecord(key);
+        if (following && !existing) { await putRecord(key, "follow", { follower: me, following: targetProfile.email, followingUsername: targetProfile.username, createdAt: new Date().toISOString() }); await createNotification(targetProfile.email, "follow", me, actor?.name, key, `${actor?.name || "Alguém"} começou a seguir você.`); }
+        if (!following && existing) await deleteRecord(key);
+        return res.status(200).json({ following });
+      }
+      if (action === "comment") {
+        const postId=safe(req.body?.postId), text=safe(req.body?.text);
+        if(!postId || !text) return res.status(400).json({error:"Comentário inválido."});
+        const post=records.find(r=>r.chave===postId && r.tipo==="post")?.data;
+        if(!post) return res.status(404).json({error:"Publicação não encontrada."});
+        const id=`comment_${crypto.randomUUID()}`;
+        const comment={postId,user:me,name:actor?.name||"Usuário",username:actor?.username||me.split("@")[0],avatarUrl:actor?.avatarUrl||"",text:text.slice(0,500),createdAt:new Date().toISOString()};
+        await putRecord(id,"comment",comment);
+        await createNotification(post.authorEmail,"comment",me,actor?.name,id,`${actor?.name||"Alguém"} comentou em sua publicação.`);
+        return res.status(201).json({comment:{id,...comment}});
+      }
+      if (action === "interaction") {
+        const postId = safe(req.body.postId), kind = safe(req.body.kind), active = Boolean(req.body.active);
+        if (!postId || !["like", "save", "repost"].includes(kind)) return res.status(400).json({ error: "Ação inválida." });
+        const key = `${kind}_${me}__${postId}`, existing = await getRecord(key);
+        if (active && !existing) { await putRecord(key, kind, { user: me, postId, createdAt: new Date().toISOString() }); const post = records.find((record) => record.chave === postId)?.data; if (post) await createNotification(post.authorEmail, kind, me, actor?.name, postId, `${actor?.name || "Alguém"} ${kind === "like" ? "curtiu" : "repostou"} seu vídeo.`); }
+        if (!active && existing) await deleteRecord(key);
+        return res.status(200).json({ active });
+      }
+    }
+    return res.status(405).json({ error: "Método não permitido." });
+  } catch (error) { console.error(error); return res.status(500).json({ error: error.message || "Erro na rede social." }); }
+}
+export const config = { api: { bodyParser: true } };
