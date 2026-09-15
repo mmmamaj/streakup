@@ -1,5 +1,5 @@
-const CACHE_NAME = "streakup-v10-online";
-const APP_SHELL = ["/", "/index.html", "/login.html", "/perfil.html", "/chat.html", "/configuracoes.html", "/assets/js/script.js", "/assets/js/theme.js", "/assets/css/theme-fix.css", "/assets/js/notifications.js", "/assets/images/streakup-logo.png", "/assets/js/login.js", "/assets/js/reels.js", "/assets/js/chat.js", "/assets/js/settings.js", "/manifest.json", "/assets/images/icon.svg"];
+const CACHE_NAME = "riseup-v11-online";
+const APP_SHELL = ["/", "/index.html", "/login.html", "/perfil.html", "/chat.html", "/configuracoes.html", "/assets/js/script.js", "/assets/js/theme.js", "/assets/css/theme-fix.css", "/assets/js/notifications.js", "/assets/images/riseup-logo.png", "/assets/js/login.js", "/assets/js/reels.js", "/assets/js/chat.js", "/assets/js/settings.js", "/manifest.json", "/assets/images/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

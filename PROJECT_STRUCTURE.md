@@ -1,7 +1,7 @@
-# Estrutura do StreakUp
+# Estrutura do RiseUp
 
 ```text
-streakup-main/
+riseup-main/
 ├── api/                  # Funções serverless e integração com a database
 │   ├── chat.js
 │   ├── notifications.js
@@ -14,7 +14,7 @@ streakup-main/
 │   │   └── theme-fix.css # Camada visual compartilhada e responsiva
 │   ├── images/
 │   │   ├── icon.svg      # Ícone instalável do app
-│   │   └── streakup-logo.png
+│   │   └── riseup-logo.png
 │   └── js/
 │       ├── chat.js
 │       ├── login.js

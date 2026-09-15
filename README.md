@@ -1,4 +1,4 @@
-# StreakUp
+# RiseUp
 
 Rede social online com contas reais, perfis, seguidores, vídeos curtos, stories, destaques, recomendações, busca e chat persistente.
 
