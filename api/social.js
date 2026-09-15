@@ -116,8 +116,14 @@ export default async function handler(req, res) {
       const actor = profileFromRecords(records, me);
       if (action === "post") {
         if (!req.body.mediaUrl || req.body.mediaType !== "video") return res.status(400).json({ error: "O For You aceita apenas vídeos curtos." });
-        const id = `post_${crypto.randomUUID()}`, post = { authorEmail: me, authorName: safe(req.body.authorName) || actor?.name || "Usuário", authorUsername: safe(req.body.authorUsername) || actor?.username || me.split("@")[0], authorAvatar: safe(req.body.authorAvatar), text: safe(req.body.text), mediaUrl: safe(req.body.mediaUrl), mediaType: "video", createdAt: new Date().toISOString(), likes: 0, reposts: 0, views: 0 };
-        await putRecord(id, "post", post); return res.status(201).json({ post: { id, ...post } });
+        const id = `post_${crypto.randomUUID()}`, post = { authorEmail: me, authorName: safe(req.body.authorName) || actor?.name || "Usuário", authorUsername: safe(req.body.authorUsername) || actor?.username || me.split("@")[0], authorAvatar: safe(req.body.authorAvatar), text: safe(req.body.text), mentions: safe(req.body.mentions), mediaUrl: safe(req.body.mediaUrl), mediaType: "video", createdAt: new Date().toISOString(), likes: 0, reposts: 0, views: 0 };
+        await putRecord(id, "post", post);
+        const mentions = [...String(post.mentions || "").matchAll(/@([a-zA-Z0-9_.-]+)/g)].map((match) => match[1].toLowerCase());
+        for (const record of records.filter((item) => ["login", "profile"].includes(item.tipo))) {
+          const mentioned = profileFromRecords(records, record.data?.email || record.data?.usuario || record.chave);
+          if (mentioned && mentions.includes(String(mentioned.username).toLowerCase()) && mentioned.email !== me) await createNotification(mentioned.email, "mention", me, actor?.name, id, `${actor?.name || "Alguém"} marcou você em um vídeo.`);
+        }
+        return res.status(201).json({ post: { id, ...post } });
       }
       if (action === "follow") {
         const target = norm(req.body.target); if (!target || target === me) return res.status(400).json({ error: "Perfil inválido." });
