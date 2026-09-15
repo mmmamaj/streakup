@@ -1,5 +1,5 @@
 (() => {
-  const user = JSON.parse(localStorage.getItem("streakup_user") || "null");
+  const user = JSON.parse(localStorage.getItem("riseup_user") || "null");
   if (!user?.email) return;
   const email = encodeURIComponent(user.email);
   const button = document.querySelector("[data-notifications]");
@@ -13,7 +13,7 @@
       const response = await fetch(`/api/notifications?me=${email}`, { cache: "no-store" });
       const data = await response.json(); if (!response.ok) return;
       badge.textContent = data.unread > 99 ? "99+" : String(data.unread || ""); badge.hidden = !data.unread;
-      list.innerHTML = data.notifications.length ? data.notifications.map((item) => `<button class="notification-item ${item.read ? "read" : "unread"}" data-notification-id="${escapeHtml(item.id)}"><span class="notification-icon">${icons[item.kind] || "•"}</span><span><strong>${escapeHtml(item.sourceName || "StreakUp")}</strong><small>${escapeHtml(item.text)}</small><time>${new Date(item.createdAt).toLocaleString("pt-BR", { day: "2-digit", hour: "2-digit", minute: "2-digit" })}</time></span></button>`).join("") : `<div class="notification-empty">Você está em dia.</div>`;
+      list.innerHTML = data.notifications.length ? data.notifications.map((item) => `<button class="notification-item ${item.read ? "read" : "unread"}" data-notification-id="${escapeHtml(item.id)}"><span class="notification-icon">${icons[item.kind] || "•"}</span><span><strong>${escapeHtml(item.sourceName || "RiseUp")}</strong><small>${escapeHtml(item.text)}</small><time>${new Date(item.createdAt).toLocaleString("pt-BR", { day: "2-digit", hour: "2-digit", minute: "2-digit" })}</time></span></button>`).join("") : `<div class="notification-empty">Você está em dia.</div>`;
     } catch { /* rede indisponível: mantém o estado atual */ }
   }
   button?.addEventListener("click", () => { panel.classList.toggle("open"); if (panel.classList.contains("open")) loadNotifications(); });

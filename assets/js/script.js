@@ -1,31 +1,11 @@
-const form = document.getElementById("registerForm");
-const status = document.getElementById("status");
-const button = document.getElementById("submitButton");
-
-if (form && status && button) {
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim().toLowerCase();
-    const password = document.getElementById("password").value;
-    status.className = "";
-    status.textContent = "Criando sua conta...";
-    button.disabled = true;
-    try {
-      const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, password }) });
-      const text = await response.text();
-      let data;
-      try { data = JSON.parse(text); } catch { throw new Error(`Servidor retornou resposta inválida (${response.status}).`); }
-      if (!response.ok) throw new Error(data.error || "Não foi possível criar a conta.");
-      localStorage.setItem("streakup_user", JSON.stringify(data.user || { name, email, username: email.split("@")[0], avatarUrl: "" }));
-      status.className = "success";
-      status.textContent = "Conta criada! Abrindo seu perfil...";
-      form.reset();
-      setTimeout(() => { window.location.href = "/perfil"; }, 500);
-    } catch (error) {
-      console.error(error);
-      status.className = "error";
-      status.textContent = error.message || "Ocorreu um erro. Tente novamente.";
-    } finally { button.disabled = false; }
-  });
-}
+const steps=[...document.querySelectorAll('.step')], progress=document.getElementById('progress');let current=1;const prefs={language:'pt-BR',level:'flex',limit:60,until:'22:00',interests:[]};
+const show=()=>{steps.forEach(s=>s.classList.toggle('active',Number(s.dataset.step)===current));progress.style.width=`${current/steps.length*100}%`;if(current===5){document.getElementById('summaryName').textContent=document.getElementById('name').value.trim()||'Seu perfil';document.getElementById('summaryPrefs').textContent=`${({flex:'Flexível',balanced:'Equilibrado',focus:'Foco',deep:'Modo profundo'})[prefs.level]} · ${prefs.limit} min/dia · até ${prefs.until}`}};
+const validStep=()=>{if(current===1){for(const id of ['name','email','password']){const e=document.getElementById(id);if(!e.value.trim()){e.focus();return false}}if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(document.getElementById('email').value))return false;if(!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,72}$/.test(document.getElementById('password').value)){alert('Use uma senha com 10+ caracteres, maiúscula, minúscula, número e símbolo.');return false}}if(current===4&&!document.getElementById('username').value.trim())return false;return true};
+document.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{if(validStep()&&current<steps.length){current++;show()}});document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{if(current>1){current--;show()}});
+document.querySelectorAll('#languages .option').forEach(b=>b.onclick=()=>{document.querySelectorAll('#languages .option').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');prefs.language=b.dataset.value});
+document.querySelectorAll('#levels .option').forEach(b=>b.onclick=()=>{document.querySelectorAll('#levels .option').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');prefs.level=b.dataset.level;prefs.limit=Number(b.dataset.limit);prefs.until=b.dataset.until});
+document.querySelectorAll('#interests .chip').forEach(b=>b.onclick=()=>{b.classList.toggle('selected');prefs.interests=[...document.querySelectorAll('#interests .chip.selected')].map(x=>x.dataset.value)});
+document.getElementById('avatarFile').onchange=e=>{const f=e.target.files?.[0];if(f){const img=document.createElement('img');img.src=URL.createObjectURL(f);document.getElementById('avatarPreview').replaceChildren(img)}};
+document.getElementById('name').oninput=e=>{if(!document.getElementById('username').value)document.getElementById('username').value=e.target.value.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,30)};
+document.getElementById('submitButton').onclick=async()=>{if(!validStep())return;const status=document.getElementById('status'),button=document.getElementById('submitButton');button.disabled=true;status.textContent='Criando seu perfil...';try{let avatarUrl='';const file=document.getElementById('avatarFile').files?.[0];if(file){const dataUrl=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(file)});const up=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataUrl,filename:file.name})});const d=await up.json();if(!up.ok)throw Error(d.error);avatarUrl=d.url}const body={name:document.getElementById('name').value.trim(),email:document.getElementById('email').value.trim().toLowerCase(),password:document.getElementById('password').value,username:document.getElementById('username').value.trim().replace(/^@/,'').replace(/[^a-zA-Z0-9_.]/g,''),bio:document.getElementById('bio').value.trim(),avatarUrl,language:prefs.language,productivityLevel:prefs.level,dailyVideoLimitMinutes:prefs.limit,videoUntil:prefs.until,interests:prefs.interests,publicProfile:true};const response=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível criar a conta.');localStorage.setItem('riseup_user',JSON.stringify(data.user));localStorage.setItem('riseup_preferences',JSON.stringify(prefs));status.textContent='Tudo pronto! Abrindo o RiseUp...';setTimeout(()=>location.href='/perfil',450)}catch(e){status.textContent=e.message||'Erro ao criar conta.';button.disabled=false}};
+show();
