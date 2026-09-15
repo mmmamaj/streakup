@@ -6,7 +6,7 @@ if (form && status && button) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
     const password = document.getElementById("password").value;
     status.className = "";
     status.textContent = "Criando sua conta...";
@@ -17,7 +17,7 @@ if (form && status && button) {
       let data;
       try { data = JSON.parse(text); } catch { throw new Error(`Servidor retornou resposta inválida (${response.status}).`); }
       if (!response.ok) throw new Error(data.error || "Não foi possível criar a conta.");
-      localStorage.setItem("streakup_user", JSON.stringify({ name, email }));
+      localStorage.setItem("streakup_user", JSON.stringify(data.user || { name, email, username: email.split("@")[0], avatarUrl: "" }));
       status.className = "success";
       status.textContent = "Conta criada! Abrindo seu perfil...";
       form.reset();

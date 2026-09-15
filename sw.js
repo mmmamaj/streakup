@@ -1,4 +1,4 @@
-const CACHE_NAME = "streakup-v1";
+const CACHE_NAME = "streakup-v4-online";
 const APP_SHELL = ["/", "/index.html", "/login.html", "/perfil.html", "/chat.html", "/configuracoes.html", "/script.js", "/login.js", "/reels.js", "/chat.js", "/settings.js", "/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -13,9 +13,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+  const url = new URL(event.request.url);
+  if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    return;
+  }
+  event.respondWith(fetch(event.request).then((response) => {
+    if (response.ok && url.origin === self.location.origin) {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+    }
     return response;
-  }).catch(() => caches.match("/index.html"))));
+  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html"))));
 });

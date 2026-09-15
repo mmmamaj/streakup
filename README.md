@@ -1,23 +1,27 @@
 # StreakUp
 
-Rede social online com contas reais, perfis, seguidores, vídeos curtos e chat persistente.
+Rede social online com contas reais, perfis, seguidores, vídeos curtos e chat persistente. A implementação ativa usa as APIs serverless em `api/` e a database pública configurada por variáveis de ambiente do servidor.
 
-A página `/perfil` é o feed **For You**, focado em vídeos verticais curtos publicados por usuários reais. O perfil do usuário pode ser aberto pelo botão **Perfil** na navegação inferior ou pela engrenagem, que permanece visível no topo do mobile. A página `/configuracoes` permite editar nome, nome de usuário, foto por URL e senha.
+## Rotas da aplicação
 
-A aplicação usa a database configurada pelo usuário. Os registros de login, perfis, posts, follows, curtidas, salvamentos, republicações, conversas e mensagens são persistidos por endpoints serverless. Não há posts, seguidores ou contatos artificiais: quando a database estiver vazia, o feed e o chat aparecem vazios.
+`/` cria uma conta; `/login` autentica; `/perfil` mostra o feed For You e o feed Seguindo; `/chat` permite pesquisar usuários reais e conversar; `/configuracoes` edita nome, nome de usuário, avatar e senha.
 
-## Rotas
-
-`/` cria conta; `/login` faz login; `/perfil` mostra o For You; `/chat` mostra mensagens; `/configuracoes` abre o perfil e as configurações.
+O botão **Perfil** abre o perfil completo no feed. O botão **Postar** leva ao compositor de vídeos, que envia arquivos de até 50 MB para a database antes de criar o registro do post. O feed não cria posts, seguidores, contatos ou bots artificiais: quando a database estiver vazia, os estados vazios são exibidos de forma explícita.
 
 ## Variáveis da Vercel
 
-Configure `DATABASE_API_KEY` e, opcionalmente, `DATABASE_API_BASE_URL`. O valor padrão de `DATABASE_API_BASE_URL` é o endpoint oficial da documentação da database. A chave nunca deve ir para o navegador.
+Configure `DATABASE_API_KEY` e, opcionalmente, `DATABASE_API_BASE_URL`. O valor padrão de `DATABASE_API_BASE_URL` é o endpoint oficial da documentação da database. A chave permanece somente no backend e não é enviada ao navegador.
 
-## Vídeos
+A função de upload usa um limite de corpo de aproximadamente 52 MB para suportar vídeos de até 50 MB. As respostas de `/api/*` recebem `Cache-Control: no-store`.
 
-O usuário escolhe um vídeo de até 50 MB no perfil. O backend envia o arquivo para o endpoint de arquivos da database, expõe o conteúdo pelo proxy `/api/media` e cria um registro `post`. O For You consulta apenas registros do tipo `post` com `mediaType` igual a `video`.
+## API pública usada pelo frontend
 
-## Chat
+A aplicação consulta `/api/social` para feed, perfis, seguir/deixar de seguir, publicação e interações. `/api/users` lista apenas dados públicos de contas reais — e-mail, nome, username, avatar e bio — sem expor senhas. `/api/chat` persiste mensagens por conversa, `/api/upload` envia arquivos e `/api/media` entrega vídeos por proxy.
 
-O chat salva mensagens em registros `chat_email1__email2` e consulta a API periodicamente para atualizar a conversa. É persistente entre dispositivos e usuários. Para segurança de produção, o próximo passo é adicionar sessão assinada/token de usuário no backend; os endpoints atuais usam o e-mail enviado pela sessão local para identificar o remetente.
+## Cache e modo online
+
+O service worker mantém apenas o shell estático da aplicação. Requisições para `/api/*` nunca entram no cache e são feitas com `cache: "no-store"`; isso evita que o mobile continue vendo respostas antigas ou uma versão quebrada depois de uma publicação.
+
+## Segurança
+
+O login existente continua baseado na database configurada, mas ainda usa `localStorage` para identificar a sessão no navegador. Para uma instalação de produção com maior segurança, o próximo passo é trocar essa identificação por uma sessão assinada ou token de usuário no backend.
