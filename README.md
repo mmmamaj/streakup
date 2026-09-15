@@ -29,3 +29,14 @@ A sessão atual continua baseada em `localStorage`, como na versão anterior. Pa
 ## Estrutura do projeto
 
 `api/` contém as funções serverless e integrações com a database. `assets/js/` contém os módulos de autenticação, feed, chat, configurações, notificações e tema. `assets/css/` contém a camada visual compartilhada e os overrides responsivos. `assets/images/` concentra a logo e o ícone instalável. As páginas HTML e os arquivos de configuração ficam na raiz para manter as rewrites da Vercel simples e previsíveis.
+
+
+## Atualização v10 — rede social
+
+- Busca agora abre o perfil exato pelo `username`, sem reutilizar o perfil do usuário logado.
+- Perfil público mostra corretamente nome, @username, posts, seguidores e seguindo.
+- Botão **Seguir/Seguindo** foi corrigido para usar o e-mail interno como identificador.
+- Contagem de seguidores/seguindo agora normaliza maiúsculas/minúsculas.
+- Busca ganhou visual consistente com o restante do app; removido o efeito de botões brancos gigantes.
+- Perfil recebeu layout mobile mais próximo de Instagram, com capa, avatar circular, ações e abas.
+- Service Worker atualizado para `v10` para evitar cache antigo escondendo as correções.
