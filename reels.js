@@ -23,7 +23,7 @@ function render() {
   feed.innerHTML = posts.map((post) => {
     const key = post.id;
     const state = actionState[key] || {};
-    return `<article class="reel-card" data-id="${esc(key)}"><video src="${esc(post.mediaUrl)}" controls loop playsinline preload="metadata"></video><div class="reel-gradient"></div><div class="reel-copy"><div class="reel-author">${avatarHtml(post.authorName, post.authorAvatar)}<div><strong>${esc(post.authorName || "Usuário")}</strong><div class="muted">@${esc(post.authorUsername || "usuario")}</div></div></div><p>${esc(post.text)}</p></div><div class="reel-actions"><button class="reel-action ${state.like ? "active" : ""}" data-action="like">♥<span>${Number(post.likes || 0) + (state.like ? 1 : 0)}</span></button><button class="reel-action ${state.save ? "active" : ""}" data-action="save">🔖<span>${state.save ? "Salvo" : "Salvar"}</span></button><button class="reel-action ${state.repost ? "active" : ""}" data-action="repost">↻<span>${state.repost ? "Repostado" : "Repostar"}</span></button><button class="reel-action" data-action="share">↗<span>Enviar</span></button></div></article>`;
+    return `<article class="reel-card" data-id="${esc(key)}"><video src="${esc(post.mediaUrl)}" controls loop playsinline preload="metadata"></video><div class="reel-gradient"></div><div class="reel-copy"><div class="reel-author">${avatarHtml(post.authorName, post.authorAvatar)}<div><strong>${esc(post.authorName || "Usuário")}</strong><div class="muted">@${esc(post.authorUsername || "usuario")}</div></div></div><p>${esc(post.text)}</p>${post.mentions ? `<small class="muted">Marcados: ${esc(post.mentions)}</small>` : ""}</div><div class="reel-actions"><button class="reel-action ${state.like ? "active" : ""}" data-action="like">♥<span>${Number(post.likes || 0) + (state.like ? 1 : 0)}</span></button><button class="reel-action ${state.save ? "active" : ""}" data-action="save">🔖<span>${state.save ? "Salvo" : "Salvar"}</span></button><button class="reel-action ${state.repost ? "active" : ""}" data-action="repost">↻<span>${state.repost ? "Repostado" : "Repostar"}</span></button><button class="reel-action" data-action="share">↗<span>Enviar</span></button></div></article>`;
   }).join("");
   feed.querySelectorAll("video").forEach((video) => {
     const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) video.play().catch(() => {}); else video.pause(); }, { threshold: .6 });
@@ -91,11 +91,11 @@ async function loadProfile() {
     avatar.style.backgroundPosition = "center";
     const followButton = document.getElementById("followButton");
     if (String(p.email).toLowerCase() === currentEmail) {
-      followButton.hidden = false;
-      followButton.textContent = "Editar perfil";
-      followButton.onclick = () => { window.location.href = "/configuracoes"; };
+      followButton.hidden = true;
+      document.getElementById("profileEditButton").hidden = false;
     } else {
       followButton.hidden = false;
+      document.getElementById("profileEditButton").hidden = true;
       followButton.textContent = p.followingMe ? "Seguindo" : "Seguir";
       followButton.onclick = () => toggleFollow(p.email, followButton);
     }
@@ -123,7 +123,7 @@ async function publishVideo(file, text) {
   const uploadResponse = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl, filename: file.name }) });
   const upload = await uploadResponse.json();
   if (!uploadResponse.ok) throw Error(upload.error || "Falha no upload do vídeo.");
-  const response = await fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "post", me: currentEmail, authorName: user.name, authorUsername: user.username || currentEmail.split("@")[0], authorAvatar: user.avatarUrl || "", text, mediaUrl: upload.url, mediaType: "video" }) });
+  const response = await fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "post", me: currentEmail, authorName: user.name, authorUsername: user.username || currentEmail.split("@")[0], authorAvatar: user.avatarUrl || "", text, mentions: document.getElementById("postMentions")?.value.trim() || "", mediaUrl: upload.url, mediaType: "video" }) });
   const data = await response.json();
   if (!response.ok) throw Error(data.error || "Não foi possível publicar o vídeo.");
 }
@@ -178,10 +178,16 @@ feed.addEventListener("click", async (event) => {
 
 document.getElementById("profileToggle")?.addEventListener("click", (event) => { event.preventDefault(); profilePanel.classList.toggle("open"); if (profilePanel.classList.contains("open")) profilePanel.scrollIntoView({ behavior: "smooth", block: "start" }); });
 document.getElementById("postToggle")?.addEventListener("click", (event) => { event.preventDefault(); postForm?.scrollIntoView({ behavior: "smooth", block: "center" }); });
+document.getElementById("searchNav")?.addEventListener("click", () => setTimeout(() => document.getElementById("globalSearchInput")?.focus(), 100));
+document.getElementById("profileEditButton")?.addEventListener("click", () => { window.location.href = "/configuracoes"; });
+document.getElementById("shareProfile")?.addEventListener("click", async () => { const url = location.href; try { await navigator.clipboard?.writeText(url); alert("Link do perfil copiado."); } catch { /* compartilhamento cancelado */ } });
+document.getElementById("storyFromProfile")?.addEventListener("click", () => document.getElementById("newStoryButton")?.click());
+document.getElementById("newHighlight")?.addEventListener("click", () => document.getElementById("newStoryButton")?.click());
 document.getElementById("followingTab")?.addEventListener("click", (event) => { event.preventDefault(); feedType = "following"; document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id === "followingTab")); loadFeed(); });
 document.querySelector(".feed-switch a.active")?.addEventListener("click", (event) => { if (event.currentTarget.id === "followingTab") return; event.preventDefault(); feedType = "feed"; document.querySelectorAll(".feed-switch a").forEach((item) => item.classList.toggle("active", item.id !== "followingTab")); loadFeed(); });
 loadFeed();
 loadProfile();
+if (location.hash === "#searchResults") setTimeout(() => document.getElementById("globalSearchInput")?.focus(), 150);
 
 async function uploadStoryImage(file) {
   if (!file || !file.type.startsWith("image/")) throw Error("Escolha uma imagem para o story.");
@@ -199,6 +205,9 @@ async function loadStories() {
     const response = await fetch(`/api/stories?me=${encodeURIComponent(currentEmail)}`, { cache: "no-store" });
     const data = await response.json(); if (!response.ok) throw Error();
     const grouped = [...new Map((data.stories || []).map((story) => [story.authorEmail, story])).values()];
+    const ownStory = (data.stories || []).find((story) => String(story.authorEmail).toLowerCase() === currentEmail);
+    const highlight = document.getElementById("selfHighlight");
+    if (highlight && ownStory?.mediaUrl) highlight.innerHTML = `<span class="highlight-ring"><img src="${esc(ownStory.mediaUrl)}" alt=""></span><small>Destaques</small>`;
     bar.innerHTML = `<button class="story-trigger" id="newStoryButton" type="button"><span class="story-ring"><span class="story-plus">＋</span></span><span>Seu story</span></button>${grouped.map((story) => `<button class="story-trigger" data-story-url="${esc(story.mediaUrl)}" type="button"><span class="story-ring">${storyAvatar(story)}</span><span>${esc(story.authorName || story.authorUsername)}</span></button>`).join("")}`;
   } catch { bar.innerHTML = `<button class="story-trigger" id="newStoryButton" type="button"><span class="story-ring"><span class="story-plus">＋</span></span><span>Seu story</span></button>`; }
 }

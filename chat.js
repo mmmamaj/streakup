@@ -135,6 +135,5 @@ messageForm.addEventListener("submit", async (event) => {
 document.getElementById("backToChats")?.addEventListener("click", () => { document.querySelector(".chat-window")?.classList.add("chat-mobile-hidden"); document.querySelector(".chat-list")?.classList.remove("chat-mobile-hidden"); });
 document.getElementById("renameChat")?.addEventListener("click", () => { if (!activeContact) return; const value = prompt("Apelido desta conversa", nicknames[activeContact.email] || activeContact.name); if (value && value.trim()) { nicknames[activeContact.email] = value.trim().slice(0, 40); localStorage.setItem("streakup_nicknames", JSON.stringify(nicknames)); chatTitle.textContent = nicknames[activeContact.email]; renderContacts(); } });
 document.getElementById("logoutButton").addEventListener("click", () => { localStorage.removeItem("streakup_user"); window.location.replace("/login"); });
-document.getElementById("myAvatar").textContent = (user?.name || "V").charAt(0).toUpperCase();
 loadDirectory();
 setInterval(loadMessages, 4000);

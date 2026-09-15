@@ -7,7 +7,7 @@
   const list = document.getElementById("notificationsList");
   const badge = document.getElementById("notificationBadge");
   const escapeHtml = (value) => String(value || "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
-  const icons = { message: "✉", follow: "＋", like: "♥", repost: "↻" };
+  const icons = { message: "✉", follow: "＋", like: "♥", repost: "↻", mention: "@" };
   async function loadNotifications() {
     try {
       const response = await fetch(`/api/notifications?me=${email}`, { cache: "no-store" });
