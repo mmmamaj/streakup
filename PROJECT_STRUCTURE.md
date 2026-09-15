@@ -1,7 +1,7 @@
 # Estrutura do RiseUp
 
 ```text
-riseup-main/
+streakup-main/
 ├── api/                  # Funções serverless e integração com a database
 │   ├── chat.js
 │   ├── notifications.js
